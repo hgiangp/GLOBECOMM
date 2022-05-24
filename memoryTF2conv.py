@@ -52,7 +52,7 @@ class MemoryDNN:
 
     def _build_net(self):
         scaled_kn_size = 2
-        kn_size = 2
+        kn_size = 4
         self.model = keras.Sequential([
                     layers.Conv1D(32, kn_size, activation='relu',input_shape=[int(self.net[0]/no_nn_inputs),kn_size]), # first Conv1D with 32 channels and kearnal size 3
                     layers.Conv1D(64, 3, activation='relu'), # second Conv1D with 32 channels and kearnal size 3

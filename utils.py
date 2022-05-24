@@ -52,14 +52,14 @@ def find_mean_queue(arr1, num_1, num_2):
   return find_mean_mode(arr1, num)
 
 def preprocessing(data_in):
-    # create scaler 
-    scaler = MinMaxScaler()
-    data = np.reshape(data_in, (-1, 1))
-    # fit scaler on data 
-    scaler.fit(data)
-    normalized = scaler.transform(data)
-    normalized = normalized.reshape(1, -1)
-    return normalized 
+	# create scaler 
+	scaler = MinMaxScaler()
+	data = np.reshape(data_in, (-1, 1))
+	# fit scaler on data 
+	scaler.fit(data)
+	normalized = scaler.transform(data)
+	normalized = normalized.reshape(1, -1)
+	return normalized 
 
 def gen_actions_bf(no_users = 5):
   import itertools

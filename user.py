@@ -1,38 +1,44 @@
-from unicodedata import name
 import numpy as np
 import matplotlib.pyplot as plt 
 
 from system_params import * 
 
-class User: 
-    def __init__(self, Amean): 
-        self.a_i = np.zeros((no_slots))
-        self.b_i = np.zeros((no_slots))
-        self.Q_i = np.zeros((no_slots))
-        self.A_i = self.gen_arrival_task(Amean)
-        self.gain = dB(self.gen_gain())
-        self.E_i = np.zeros((no_slots))
 
-
-    def update_phy_queue(self, islot, a_i, b_i):
-        self.a_i[islot-1] = a_i
-        self.b_i[islot-1] = b_i 
-
-        self.Q_i[islot] = max(self.Q_i[islot-1] - a_i - b_i, 0) + self.A_i[islot-1]
-        
-        return self.Q_i[islot]
+class Queue: 
+    def __init__(self, no_slots):
+        self.queue_length = no_slots
+        self.value = np.zeros((no_slots, 1))
     
-    def update_energy(self, islot, E_t): 
-        # a_i = f*delta/F -> f = a_i*F/delta 
-        # e_ai = kappa * (a_i*F/delta)**3 ) * delta 
-        # b_i = bw*delta/R * log2 (1 + ph/(N0*bw))
-        # e_bi = (N0*bw/h) * exp((b_i*R*ln(2)/(bw*delta)) - 1)
-        self.E_i[islot] = E_t 
+    def update(self, islot, depature, arrival): 
+        self.value[islot, :] = np.maximum(self.value[-1, :] - depature, 0) + arrival
+    
+    def get_queue(self, islot): 
+        return self.value[islot, 0]
+class User: 
+    def __init__(self, Amean):
+        self.gain = dB(self.gen_gain())
+        self.A_i = self.gen_arrival_task(Amean)
 
-        
+        self.Q_i = Queue(no_slots=no_slots)
+
+        self.a_i = np.zeros((no_slots, 1))
+        self.b_i = np.zeros((no_slots, 1))
+    
+    def update_computation_task(self, islot, value): 
+        self.a_i[islot, :] = value 
+
+    def update_offload_task(self, islot, value): 
+        self.b_i[islot, :] = value  
+
+    def update_queue(self, islot):
+        self.Q_i.update(islot=islot, depature=self.a_i[islot-1, :] + \
+            self.b_i[islot-1, :], arrival=self.A_i[islot - 1, :])
+
+    def get_queue(self, islot): 
+        return self.Q_i.get_queue(islot)
 
     def gen_arrival_task(self, Amean):
-        dataA = np.random.uniform(0, Amean*2, size=(no_slots, 1))
+        dataA = np.round(np.random.uniform(0, Amean*2, size=(no_slots, 1)))
         return dataA 
 
 
@@ -55,9 +61,4 @@ class User:
     def gen_gain(self): 
         dist_arr = np.random.randint(low=10, high=100, size=(no_slots, 1))
         gain = np.array([self.gen_gain_slot(dist) for dist in dist_arr])
-        return gain 
-    
-
-# if name == '__main__': 
-A = User(200000)
-print('finished')
+        return gain
