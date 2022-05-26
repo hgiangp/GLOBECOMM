@@ -30,6 +30,7 @@ class TFLearning:
         self.E_ue = np.zeros((no_slots, no_users)) # energy consumption of all user  
         self.E_uav = np.zeros((no_slots, no_users)) # energy consumption of uav for all user 
         self.delay = np.zeros((no_slots, no_users))
+        self.bf_action = gen_actions_bf(no_users=no_users)
 
     def get_gain_ue(self, islot): 
         gain = np.array([user.gain[islot] for user in self.users])
@@ -94,6 +95,13 @@ class TFLearning:
             q_norm, l_norm = preprocessing(Q_t), preprocessing(L_t)
 
             nn_input = np.vstack((h_norm, q_norm, l_norm, d_norm)).transpose().flatten()
+            if opt_mode == 'bf': 
+                m_list = self.bf_action.copy()
+            elif opt_mode == 'lydroo': 
+                m_list = self.mem.decode(nn_input, self.k, DECODE_MODE)
+            elif opt_mode == 'random': 
+                random_index = np.random.choice(2**no_users, 1)
+                m_list = self.bf_action[random_index, :]
 
             m_list = self.mem.decode(nn_input, self.k, DECODE_MODE)
             
