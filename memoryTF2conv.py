@@ -26,6 +26,7 @@ class MemoryDNN:
         training_interval=10, 
         batch_size=100, 
         memory_size=1000,
+        test_size=32,
         output_graph=False
     ):
 
@@ -34,6 +35,7 @@ class MemoryDNN:
         self.lr = learning_rate
         self.batch_size = batch_size
         self.memory_size = memory_size
+        self.test_size = test_size
         
         # store all binary actions
         self.enumerate_actions = []
@@ -43,6 +45,8 @@ class MemoryDNN:
 
         # store training cost
         self.cost_his = []
+        self.val_cost_his = []
+
 
         # initialize zero memory [h, m]
         self.memory = np.zeros((self.memory_size, self.net[0] + self.net[-1]))
@@ -85,23 +89,31 @@ class MemoryDNN:
     def learn(self):
         # sample batch memory from all memory
         if self.memory_counter > self.memory_size:
-            sample_index = np.random.choice(self.memory_size, size=self.batch_size)
+            sample_index = np.random.choice(self.memory_size, size=self.batch_size + self.test_size)
         else:
-            sample_index = np.random.choice(self.memory_counter, size=self.batch_size)
+            sample_index = np.random.choice(self.memory_counter, size=self.batch_size + self.test_size)
         batch_memory = self.memory[sample_index, :]
+
+
+
         
         h_train = batch_memory[:, 0: self.net[0]]
-        h_train = h_train.reshape(self.batch_size,int(self.net[0]/no_nn_inputs),no_nn_inputs)
+        h_train = h_train.reshape(self.batch_size+self.test_size,int(self.net[0]/no_nn_inputs),no_nn_inputs)
         m_train = batch_memory[:, self.net[0]:]
+
         
         # print(h_train)          # (128, 10)
         # print(m_train)          # (128, 10)
 
         # train the DNN
-        hist = self.model.fit(h_train, m_train, verbose=0)
+        hist = self.model.fit(h_train, m_train, verbose=0, validation_split=1/3)
         self.cost = hist.history['loss'][0]
+        self.val_cost = hist.history['val_loss'][0]
+        
         assert(self.cost > 0)
+
         self.cost_his.append(self.cost)
+        self.val_cost_his.append(self.val_cost)
 
     def decode(self, h, k = 1, mode = 'OP'):
         # to have batch dimension when feed into tf placeholder
@@ -172,7 +184,9 @@ class MemoryDNN:
     def plot_cost(self, path_name):
         import matplotlib.pyplot as plt
         plt.plot(np.arange(len(self.cost_his))*self.training_interval, self.cost_his)
+        plt.plot(np.arange(len(self.val_cost_his))*self.training_interval, self.val_cost_his)
         plt.ylabel('Training Cost')
+        plt.legend(['Train Cost', 'Validation Cost'])
         plt.grid()
         # plt.ylim((0, 1))
         plt.xlabel('Time Frames')
