@@ -5,7 +5,7 @@ from utils import *
 ####
 # SYSTEM PARAMETERS  
 ####
-no_users = 10
+no_users = 5
 duration = 10 
 ts_duration = mini(10) 
 no_slots = int(duration/ts_duration)
@@ -56,9 +56,9 @@ D_TH = 10*Amean
 # Computation parameters 
 #############
 KAPPA = 1e-27
-fi_0 = giga(0.5)
-fu_0 = giga(1.5)
-f_iU_0 = giga(8)
+fi_0 = giga(0.2)
+fu_0 = giga(0.15)
+f_iU_0 = giga()
 
 PSI = 0.1
 
