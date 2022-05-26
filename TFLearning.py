@@ -190,13 +190,6 @@ if __name__ == "__main__":
     optimizer = TFLearning()
     optimizer.learning()
     optimizer.plot_figure()
-
-
-
-    
-
-    
-
     # object = optimizer
     # filename = "users.pickle"
     # filehandler = open(filename, 'wb') 

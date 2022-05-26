@@ -88,8 +88,7 @@ def resource_allocation(off_decsion, Q, L, gain, D):
 	off_ue = np.where(off_decsion == 1)[0]
 	obj1, a_t, energy_ue_pro = optimize_computation_task(local_ue, f_max=fi_0, psi=1, queue_t=Q, d_t=D)
 	obj2, b_t, energy_ue_off = opt_commun_tasks_eqbw(off_ue, Q_t=Q, L_t=L, gain_t=gain)
-	# obj3, c_t, energy_uav_pro = optimize_computation_task(np.arange(no_users), f_max=fu_0, psi= PSI, queue_t=L, d_t=D)
-	obj3, c_t, energy_uav_pro = optimize_uav_freq(np.arange(no_users), f_max=f_iU_0, psi= PSI, queue_t=L, d_t=D)
+	obj3, c_t, energy_uav_pro = optimize_computation_task(np.arange(no_users), f_max=f_iU_0, psi= PSI, queue_t=L, d_t=D)
 	# obj3, c_t, energy_uav_pro = optimize_computation_uav(f_max=f_iU_0, psi= PSI, l_t=L, d_t=D)
 
 	obj_value = obj1 + obj2 + obj3

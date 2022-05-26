@@ -11,8 +11,8 @@ ts_duration = mini(10)
 no_slots = int(duration/ts_duration)
 
 R = Kb(1)
-Amean = 8
-Ameans = np.concatenate((Amean*np.ones((no_users, 1))), axis = 0)
+Amean = 6
+Ameans = np.concatenate((4*np.ones(5), 6*np.ones(5)), axis = 0)
 
 #############
 ## CHANNEL MODEL PARAMETERS 
@@ -49,16 +49,16 @@ no_nn_inputs = 4
 ############
 # Delay 
 ############
-D_TH = 10*Amean
+D_TH = 2.8*Amean
 
 
 ############
 # Computation parameters 
 #############
 KAPPA = 1e-27
-fi_0 = giga(0.5)
-fu_0 = giga(1.5)
-f_iU_0 = giga(7)
+fi_0 = giga(0.2)
+fu_0 = giga(0.15)
+f_iU_0 = giga(2)*0.75/no_users
 
 PSI = 0.1
 
