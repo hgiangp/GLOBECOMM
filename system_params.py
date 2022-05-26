@@ -66,5 +66,5 @@ F = 500*R
 
 pi_0 = dBm(20)
 
-opt_mode_arr = ['LYDROO', 'bf']
-opt_mode = opt_mode_arr[0]
+opt_mode_arr = ['lydroo', 'bf', 'random']
+opt_mode = opt_mode_arr[2]
