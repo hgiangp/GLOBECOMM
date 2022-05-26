@@ -6,12 +6,12 @@ from utils import *
 # SYSTEM PARAMETERS  
 ####
 no_users = 10
-duration = 1 
+duration = 10 
 ts_duration = mini(10) 
 no_slots = int(duration/ts_duration)
 
 R = Kb(1)
-Amean = 12
+Amean = 8
 Ameans = np.concatenate((Amean*np.ones((no_users, 1))), axis = 0)
 
 #############
@@ -49,7 +49,7 @@ no_nn_inputs = 4
 ############
 # Delay 
 ############
-D_TH = 100*Amean
+D_TH = 10*Amean
 
 
 ############
@@ -57,9 +57,10 @@ D_TH = 100*Amean
 #############
 KAPPA = 1e-27
 fi_0 = giga(0.5)
-fu_0 = giga(5)
+fu_0 = giga(1.5)
+f_iU_0 = giga(8)
 
-PSI = 0.001
+PSI = 0.1
 
 F = 500*R
 
@@ -67,4 +68,3 @@ pi_0 = dBm(20)
 
 opt_mode_arr = ['LYDROO', 'bf']
 opt_mode = opt_mode_arr[0]
-

@@ -1,5 +1,6 @@
 from numpy import c_
 from system_params import * 
+from scipy.optimize import minimize, Bounds, LinearConstraint
 
 def optimize_computation_task(idx_user, f_max, psi, queue_t, d_t):
 	opt_tasks = np.zeros((no_users)) 
@@ -52,12 +53,38 @@ def opt_commun_tasks_eqbw(idx_user, Q_t, L_t, gain_t):
 
 	return obj_value, opt_tasks, opt_energy
 
+def optimize_computation_uav(f_max, psi, l_t, d_t):
+	def objective_func(f_iU):
+		return np.sum(-(l_t + d_t)*f_iU*ts_duration/F + LYA_V*psi*KAPPA*ts_duration*(f_iU**3))
+
+	def obj_der(f_iU):
+		return -(l_t + d_t)*ts_duration/F + LYA_V*psi*KAPPA*3*(f_iU**2)
+
+	def obj_hess(f_iU):
+		return LYA_V*KAPPA*psi*ts_duration*6*f_iU
+
+	x = np.ones((no_users))
+	bounds = Bounds(x*0, x*l_t*F/ts_duration)
+	linear_constraint = LinearConstraint(x, 0, f_max)
+
+	f_iU_0 = np.ones(no_users)
+	res = minimize(objective_func, f_iU_0, method='trust-constr', jac=obj_der, hess=obj_hess, tol=1e-7,
+	            constraints=[linear_constraint], bounds=bounds)
+
+	# update uav frequency 
+	f_u = res.x
+	obj_value = res.fun 
+	opt_tasks = np.round(f_u*ts_duration/F)
+	opt_energy = KAPPA*((opt_tasks*F/ts_duration)**3)*ts_duration
+	return obj_value, opt_tasks, opt_energy
+
 def resource_allocation(off_decsion, Q, L, gain, D):
 	local_ue = np.where(off_decsion == 0)[0]
 	off_ue = np.where(off_decsion == 1)[0]
 	obj1, a_t, energy_ue_pro = optimize_computation_task(local_ue, f_max=fi_0, psi=1, queue_t=Q, d_t=D)
 	obj2, b_t, energy_ue_off = opt_commun_tasks_eqbw(off_ue, Q_t=Q, L_t=L, gain_t=gain)
-	obj3, c_t, energy_uav_pro = optimize_computation_task(off_ue, f_max=fu_0, psi= PSI, queue_t=L, d_t=D)
+	# obj3, c_t, energy_uav_pro = optimize_computation_task(np.arange(no_users), f_max=fu_0, psi= PSI, queue_t=L, d_t=D)
+	obj3, c_t, energy_uav_pro = optimize_computation_uav(f_max=f_iU_0, psi= PSI, l_t=L, d_t=D)
 
 	obj_value = obj1 + obj2 + obj3
 	E_ue = energy_ue_pro + energy_ue_off 

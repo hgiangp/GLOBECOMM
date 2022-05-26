@@ -10,7 +10,7 @@ class Queue:
         self.value = np.zeros((no_slots, 1))
     
     def update(self, islot, depature, arrival): 
-        self.value[islot, :] = np.maximum(self.value[-1, :] - depature, 0) + arrival
+        self.value[islot, :] = np.maximum(self.value[islot-1, :] - depature, 0) + arrival
     
     def get_queue(self, islot): 
         return self.value[islot, 0]

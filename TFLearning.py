@@ -1,5 +1,9 @@
 import numpy as np 
 import pickle
+import pandas as pd 
+import time 
+from pandas import DataFrame as df
+
 from memoryTF2conv import *
 from plot_kpi import create_img_folder, plot_kpi_avr, plot_kpi_users, plot_rate 
 from user import User
@@ -151,17 +155,27 @@ class TFLearning:
         Q_mean = np.mean(Q_i, axis=1)
         L_mean = ava_server_queue.copy()
         D_mean = np.mean(self.virtualD, axis=1)
-        E_ue_mean = np.mean(self.E_ue, axis=1)
-        E_uav_mean = np.mean(self.E_uav, axis=1)
+        E_ue_mean = np.mean(self.E_ue, axis=1)*1000/ts_duration
+        E_uav_mean = np.mean(self.E_uav, axis=1)*1000/ts_duration
         W_E_mean = E_ue_mean + PSI * E_uav_mean
         ava_delay = np.mean(self.delay, axis=1)
-        kpi_list = ['User Queue Length (packets)', 'UAV queue length (packets)', 'Virtual queue', 'User energy', 'UAV energy', 'Weighted energy', 'Delay']
+
+        a_mean = np.mean(np.concatenate([user.a_i for user in self.users], axis=1), axis=1) 
+        b_mean = np.mean(np.concatenate([user.b_i for user in self.users], axis=1), axis=1) 
+        c_mean = np.mean(self.server.c_i, axis=1)
+
+        kpi_list = ['User Queue Length (packets)', 'UAV queue length (packets)', 'Virtual queue', 'User power (mW)', 'UAV power (mW)', 'Weighted power', 'Delay']
         data_list = [Q_mean, L_mean, D_mean, E_ue_mean, E_uav_mean, W_E_mean, ava_delay]
 
         plot_kpi_avr(data_list, kpi_list, path=pth_folder)
-        
 
-        
+        df = pd.DataFrame( {'local_queue':Q_mean,'uav_queue':L_mean,
+            'energy_user':E_ue_mean,'energy_uav':E_uav_mean, 
+            'delay':ava_delay, 'weightedE': W_E_mean, 
+            'off_b': b_mean, 'local_a': a_mean, 'remote_c': c_mean, 
+            # 'time': total_time
+            })
+        df.to_csv(pth_folder+"result.csv",index=False)
 
 if __name__ == "__main__": 
     
