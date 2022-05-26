@@ -58,7 +58,7 @@ D_TH = 10*Amean
 KAPPA = 1e-27
 fi_0 = giga(0.5)
 fu_0 = giga(1.5)
-f_iU_0 = giga(8)
+f_iU_0 = giga(7)
 
 PSI = 0.1
 

@@ -24,6 +24,11 @@ def optimize_computation_task(idx_user, f_max, psi, queue_t, d_t):
 	
 	return obj_value, opt_tasks, opt_energy
 
+def optimize_uav_freq(idx_user, f_max, psi, queue_t, d_t):
+	no_opt_user = len(idx_user)
+	f_0ue = f_max/no_opt_user
+	return optimize_computation_task(idx_user, f_0ue, psi, queue_t, d_t)
+
 def opt_commun_tasks_eqbw(idx_user, Q_t, L_t, gain_t): 
 	opt_tasks = np.zeros((no_users)) 
 	opt_energy = np.zeros((no_users))
@@ -84,7 +89,8 @@ def resource_allocation(off_decsion, Q, L, gain, D):
 	obj1, a_t, energy_ue_pro = optimize_computation_task(local_ue, f_max=fi_0, psi=1, queue_t=Q, d_t=D)
 	obj2, b_t, energy_ue_off = opt_commun_tasks_eqbw(off_ue, Q_t=Q, L_t=L, gain_t=gain)
 	# obj3, c_t, energy_uav_pro = optimize_computation_task(np.arange(no_users), f_max=fu_0, psi= PSI, queue_t=L, d_t=D)
-	obj3, c_t, energy_uav_pro = optimize_computation_uav(f_max=f_iU_0, psi= PSI, l_t=L, d_t=D)
+	obj3, c_t, energy_uav_pro = optimize_uav_freq(np.arange(no_users), f_max=f_iU_0, psi= PSI, queue_t=L, d_t=D)
+	# obj3, c_t, energy_uav_pro = optimize_computation_uav(f_max=f_iU_0, psi= PSI, l_t=L, d_t=D)
 
 	obj_value = obj1 + obj2 + obj3
 	E_ue = energy_ue_pro + energy_ue_off 
