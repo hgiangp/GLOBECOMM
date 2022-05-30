@@ -5,12 +5,10 @@ import time
 from pandas import DataFrame as df
 
 from memoryTF2conv import *
-from plot_kpi import create_img_folder, plot_kpi_avr, plot_kpi_users, plot_rate 
+from plot_kpi import create_img_folder, plot_kpi_avr, plot_kpi_users, plot_offloading_computation, plot_pickle, plot_rate, save_data 
 from user import User
 from server import Server
 from system_params import *  
-
-import utils
 from utils_optimization import * 
 
 ##### initialization ########
@@ -20,15 +18,18 @@ class TFLearning:
         self.users = [User(Amean) for Amean in Ameans]
         self.server = Server()
         self.virtualD = np.zeros((no_slots, no_users))
-        self.k = 100           # no of generated modes in each TS 
+        self.k = 100         # no of generated modes in each TS 
         self.mem = MemoryDNN(net = [no_users*no_nn_inputs, 256, 128, no_users],
                 learning_rate = 0.01,
                 training_interval=20,
                 batch_size=128,
                 memory_size=Memory)
 
-        self.E_ue = np.zeros((no_slots, no_users)) # energy consumption of all user  
+        self.E_ue_pro = np.zeros((no_slots, no_users)) # energy consumption of all user  
+        self.E_ue_off = np.zeros((no_slots, no_users)) # energy consumption of all user  
+        self.E_ue = np.zeros((no_slots, no_users))
         self.E_uav = np.zeros((no_slots, no_users)) # energy consumption of uav for all user 
+        # self.E_uav = np.zeros((no_slots))
         self.delay = np.zeros((no_slots, no_users))
         self.bf_action = gen_actions_bf(no_users=no_users)
 
@@ -51,21 +52,24 @@ class TFLearning:
         # update users queue
         for (iuser, user) in enumerate(self.users): 
             # update tasks of this time slot 
-            user.update_computation_task(islot, a_i[iuser])
-            user.update_offload_task(islot, b_i[iuser])
+            user.a_i(a_i[iuser])
+            user.b_i(b_i[iuser])
+            user.weighted_energy(self.E_ue[islot, iuser])
+            user.delay(self.delay[islot, iuser])
             # update tasks 
 
         # update server queue 
-        self.server.update_off_task(islot=islot, b_i=b_i)
-        self.server.update_computation_task(islot=islot, c_i=c_i)
+        self.server.b_i(b_i=b_i)
+        self.server.c_i(c_i=c_i)
+        self.server.energy(self.E_uav[islot, :])
 
     def update_n_get_queue(self, islot): 
         for user in self.users: 
-            user.update_queue(islot=islot)
-        self.server.update_queue(islot=islot)
+            user.update_queue()
+        self.server.update_queue()
 
-        Q_t = np.array([user.get_queue(islot=islot) for user in self.users])
-        L_t = self.server.get_queue(islot=islot)    
+        Q_t = np.array([user.get_queue() for user in self.users])
+        L_t = self.server.get_queue()    
         self.virtualD[islot, :] = np.maximum(self.virtualD[islot-1, :] + (Q_t + L_t) - D_TH, 0) 
 
         return Q_t, L_t, self.virtualD[islot, :]
@@ -86,6 +90,11 @@ class TFLearning:
             if islot % (no_slots//10) == 0:
                 print("%0.1f"%(islot/no_slots))
             
+            ## update counter
+            for user in self.users: 
+                user.ts_counter(islot)
+            self.server.ts_counter(islot)
+            
             # update queue 
             gain_t = self.get_gain_ue(islot=islot)
             Q_t, L_t, D_t = self.update_n_get_queue(islot=islot)
@@ -102,8 +111,6 @@ class TFLearning:
             elif opt_mode == 'random': 
                 random_index = np.random.choice(2**no_users, 1)
                 m_list = self.bf_action[random_index, :]
-
-            m_list = self.mem.decode(nn_input, self.k, DECODE_MODE)
             
             r_list = []
             v_list = []
@@ -122,55 +129,57 @@ class TFLearning:
             # encode with the larget reward 
             self.mem.encode(nn_input, m_list[best_idx])
                         
-            # store max result 
-            tmp, a_t, b_t, c_t, self.E_ue[islot, :], self.E_uav[islot, :] = r_list[best_idx]
-
-            self.return_opt_value(islot=islot, a_i=a_t, b_i=b_t, c_i=c_t)
-
+            # store max result
+            tmp, a_t, b_t, c_t, self.E_ue_pro[islot, :], self.E_ue_off[islot, :], self.E_uav[islot, :] = r_list[best_idx]
+            self.E_ue[islot, :] = self.E_ue_pro[islot, :] + self.E_ue_off[islot, :]
             # calculate delay 
             self.delay[islot, :] = self.cal_delay(islot)
 
+            self.return_opt_value(islot=islot, a_i=a_t, b_i=b_t, c_i=c_t)
+
             is_debug_mode = True
 
-            if is_debug_mode and islot%1 == 0: 
+            if is_debug_mode and islot%100 == 0: 
                 print(f'local computation: a_i =', a_t)
                 print(f'offloading volume: b_i =', b_t)
                 print(f'remote computation: c_i =', c_t)
-                print(f'remote computation: energy_i =', self.E_ue[islot, :]*1000)
+                print(f'remote computation: energy_i =', self.E_ue_pro[islot, :]*1000)
+                print(f'remote computation: energy_i =', self.E_ue_off[islot, :]*1000)
                 print(f'remote computation: energy_u =', self.E_uav[islot, :]*1000)
                 print(f'virtual queue_i =', self.virtualD[islot,:])                
                 print(f'fvalue = {v_list[k_idx_his[-1]]}')
-
-    print("finished!")
-
-    def plot_figure(self): 
+        
         pth_folder = create_img_folder()
-
-        self.mem.plot_cost(pth_folder + "Training Loss")
-
-        kpi_list = ['Arrival tasks', 'Local tasks', 'Offloaded tasks', 'Queue length']
-        for (iuser, user) in enumerate(self.users): 
-            data_list_ue = [user.A_i, user.a_i.reshape(-1), user.b_i.reshape(-1), user.Q_i.value.reshape(-1)]
-            plot_kpi_users(data_list_ue, kpi_list, path = pth_folder, title ='user[{}]'.format(iuser))
+        save_data(file_name = pth_folder + "users.pickle", object=self.users)
+        save_data(file_name = pth_folder + "server.pickle", object=self.server)
         
-        kpi_list = ['Arrival task', 'Computation tasks', 'Queue length']
+        print("finished!")
+
+    def plot_figure(self, running_time, pth_folder): 
+        
+
+        self.mem.plot_cost(pth_folder + "Training Loss")        
+        
         Q_i = np.concatenate([user.Q_i.value[:, :] for user in self.users], axis=1)
-        ava_server_queue = np.mean(np.concatenate([li.value for li in self.server.L_i], axis = 1), axis=1)
-        data_list_uav = [np.mean(self.server.b_i, axis=1), np.mean(self.server.c_i, axis = 1), ava_server_queue]
-        plot_kpi_users(data_list_uav, kpi_list, path = pth_folder, title ='server')
-
-        
         Q_mean = np.mean(Q_i, axis=1)
-        L_mean = ava_server_queue.copy()
+        L_mean = np.mean(np.concatenate([li.value for li in self.server.L_i], axis = 1), axis=1)
         D_mean = np.mean(self.virtualD, axis=1)
-        E_ue_mean = np.mean(self.E_ue, axis=1)*1000/ts_duration
+        E_ue_pro_mean = np.mean(self.E_ue_pro, axis=1)*1000/ts_duration
+        E_ue_off_mean = np.mean(self.E_ue_off, axis=1)*1000/ts_duration
+        E_ue_mean = E_ue_pro_mean + E_ue_off_mean
         E_uav_mean = np.mean(self.E_uav, axis=1)*1000/ts_duration
         W_E_mean = E_ue_mean + PSI * E_uav_mean
         ava_delay = np.mean(self.delay, axis=1)
 
-        a_mean = np.mean(np.concatenate([user.a_i for user in self.users], axis=1), axis=1) 
-        b_mean = np.mean(np.concatenate([user.b_i for user in self.users], axis=1), axis=1) 
-        c_mean = np.mean(self.server.c_i, axis=1)
+
+        kpi_list_user =  ['Average computation power', 'Average offloading power', 'Total power']
+        data_list_user = [E_ue_pro_mean, E_ue_off_mean, E_ue_mean]
+        plot_kpi_users(data_list_user, kpi_list_user, path = pth_folder, title ='users')
+
+        a_mean = np.mean(np.concatenate([user._a_i for user in self.users], axis=1), axis=1) 
+        b_mean = np.mean(np.concatenate([user._b_i for user in self.users], axis=1), axis=1) 
+        c_mean = np.mean(self.server._c_i, axis=1)
+        plot_offloading_computation(b_mean, c_mean, pth_folder)
 
         kpi_list = ['User Queue Length (packets)', 'UAV queue length (packets)', 'Virtual queue', 'User power (mW)', 'UAV power (mW)', 'Weighted power', 'Delay']
         data_list = [Q_mean, L_mean, D_mean, E_ue_mean, E_uav_mean, W_E_mean, ava_delay]
@@ -178,29 +187,27 @@ class TFLearning:
         plot_kpi_avr(data_list, kpi_list, path=pth_folder)
 
         df = pd.DataFrame( {'local_queue':Q_mean,'uav_queue':L_mean,
+            'energy_user_pro':E_ue_pro_mean,'energy_user_off':E_ue_off_mean, 
             'energy_user':E_ue_mean,'energy_uav':E_uav_mean, 
             'delay':ava_delay, 'weightedE': W_E_mean, 
             'off_b': b_mean, 'local_a': a_mean, 'remote_c': c_mean, 
-            # 'time': total_time
+            'time': running_time
             })
         df.to_csv(pth_folder+"result.csv",index=False)
+        
 
 if __name__ == "__main__": 
     
     optimizer = TFLearning()
+    start_time = time.time()
     optimizer.learning()
-    optimizer.plot_figure()
+    total_time = time.time() - start_time
+    print("{:.2f}".format(total_time))
 
-
-
+    path = create_img_folder()
     
+    optimizer.plot_figure(running_time=total_time, pth_folder=path)
+    # plot_pickle(path)
 
-    
-
-    # object = optimizer
-    # filename = "users.pickle"
-    # filehandler = open(filename, 'wb') 
-    # pickle.dump(object, filehandler)
-    # filehandler.close()
 
     print('finish')

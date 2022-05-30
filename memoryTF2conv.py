@@ -63,10 +63,10 @@ class MemoryDNN:
                     layers.Conv1D(64, 3, activation='relu'), # second Conv1D with 32 channels and kearnal size 3
                     layers.Flatten(),
                     layers.Dense(64, activation='relu'),
-                    layers.Dense(self.net[-1], activation='sigmoid')
+                    # layers.Dense(self.net[-1], activation='sigmoid'),
                     # layers.Dense(self.net[1], activation='relu'),  # the first hidden layer
                     # layers.Dense(self.net[2], activation='relu'),  # the second hidden layer
-                    # layers.Dense(self.net[-1], activation='sigmoid')  # the output layer
+                    layers.Dense(self.net[-1], activation='sigmoid')  # the output layer
                 ])
 # 
         self.model.compile(optimizer=keras.optimizers.Adam(lr=self.lr), loss=tf.losses.binary_crossentropy, metrics=['accuracy'])
@@ -109,6 +109,9 @@ class MemoryDNN:
         hist = self.model.fit(h_train, m_train, verbose=0, validation_split=1/3)
         self.cost = hist.history['loss'][0]
         self.val_cost = hist.history['val_loss'][0]
+        isCheckCost = True
+        if isCheckCost: 
+            print("{:}\t {:.2f}\t{:.2f}".format(self.memory_counter, hist.history['loss'][0], hist.history['val_loss'][0]))
         
         assert(self.cost > 0)
 

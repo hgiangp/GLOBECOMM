@@ -1,4 +1,7 @@
-from numpy import c_
+from sklearn.preprocessing import MinMaxScaler, StandardScaler
+
+from cmath import sqrt
+from numpy import arange, c_
 from system_params import * 
 from scipy.optimize import minimize, Bounds, LinearConstraint
 
@@ -17,12 +20,30 @@ def optimize_computation_task(idx_user, f_max, psi, queue_t, d_t):
 		freq = np.sqrt((queue_opt_users + dt_opt_users)/(3*LYA_V*KAPPA*PSI*F))
 		freq_opt = np.minimum(freq, bounded_freq)
 
-		opt_tasks[idx_user] = np.round(freq_opt*ts_duration/F)
+		opt_tasks[idx_user] = np.floor(freq_opt*ts_duration/F)
 		opt_energy = KAPPA * ((opt_tasks*F/ts_duration)**3) * ts_duration
 		
-		obj_value = np.sum(LYA_V*psi*opt_energy - queue_t*opt_tasks)
+		obj_value = np.sum(LYA_V*psi*opt_energy - (queue_t + d_t)*opt_tasks)
 	
 	return obj_value, opt_tasks, opt_energy
+
+def optimize_uav_freq(idx_user, f_max, psi, queue_t, d_t):
+	# no_opt_user = len(idx_user)
+	# f_0ue = f_max/no_opt_user
+	# return optimize_computation_task(idx_user, f_0ue, psi, queue_t, d_t)
+
+	opt_value = np.sqrt(queue_t + d_t)
+	if np.sum(opt_value) != 0: 
+		opt_scale = opt_value/np.sum(opt_value)
+	else: 
+		opt_scale = 1/no_users 
+
+	obj_value, opt_tasks, opt_energy = optimize_computation_task(idx_user, f_max*opt_scale, psi, queue_t, d_t)
+		# opt_energy = KAPPA * np.sum((opt_tasks*F/ts_duration))**3 * ts_duration
+		# obj_value = LYA_V*psi*opt_energy - np.sum((queue_t + d_t)*opt_tasks)
+
+	return obj_value, opt_tasks, opt_energy
+
 
 def opt_commun_tasks_eqbw(idx_user, Q_t, L_t, gain_t): 
 	opt_tasks = np.zeros((no_users)) 
@@ -42,10 +63,10 @@ def opt_commun_tasks_eqbw(idx_user, Q_t, L_t, gain_t):
 	
 	if no_opt_users != 0: 
 		eqbw = BW_W/no_opt_users 
-		bounded_b = np.minimum(q_opt_users, np.round(eqbw*ts_duration/R*np.log2(1 + pi_0*gain_opt_users/N0/eqbw)))
+		bounded_b = np.minimum(q_opt_users, np.floor(eqbw*ts_duration/R*np.log2(1 + pi_0*gain_opt_users/N0/eqbw)))
 		opt_tasks[idx_opt] = np.maximum(0, \
 			np.minimum(bounded_b, \
-			np.round(eqbw*ts_duration/R*np.log2((q_opt_users - l_opt_users)*gain_opt_users/(LYA_V*N0*R*np.log(2))))))	
+			np.floor(eqbw*ts_duration/R*np.log2((q_opt_users - l_opt_users)*gain_opt_users/(LYA_V*N0*R*np.log(2))))))	
 		
 		opt_energy[idx_opt] = (N0*eqbw*ts_duration/gain_opt_users)*(2**(opt_tasks[idx_opt] *R/eqbw/ts_duration) - 1)
 
@@ -74,7 +95,7 @@ def optimize_computation_uav(f_max, psi, l_t, d_t):
 	# update uav frequency 
 	f_u = res.x
 	obj_value = res.fun 
-	opt_tasks = np.round(f_u*ts_duration/F)
+	opt_tasks = np.floor(f_u*ts_duration/F)
 	opt_energy = KAPPA*((opt_tasks*F/ts_duration)**3)*ts_duration
 	return obj_value, opt_tasks, opt_energy
 
@@ -83,18 +104,19 @@ def resource_allocation(off_decsion, Q, L, gain, D):
 	off_ue = np.where(off_decsion == 1)[0]
 	obj1, a_t, energy_ue_pro = optimize_computation_task(local_ue, f_max=fi_0, psi=1, queue_t=Q, d_t=D)
 	obj2, b_t, energy_ue_off = opt_commun_tasks_eqbw(off_ue, Q_t=Q, L_t=L, gain_t=gain)
-	# obj3, c_t, energy_uav_pro = optimize_computation_task(np.arange(no_users), f_max=fu_0, psi= PSI, queue_t=L, d_t=D)
-	obj3, c_t, energy_uav_pro = optimize_computation_uav(f_max=f_iU_0, psi= PSI, l_t=L, d_t=D)
+	# obj3, c_t, energy_uav_pro = optimize_computation_task(np.arange(no_users), f_max=f_iU_0, psi= PSI, queue_t=L, d_t=D)
+	# obj3, c_t, energy_uav_pro = optimize_computation_uav(f_max=f_iU_0, psi= PSI, l_t=L, d_t=D)
+	obj3, c_t, energy_uav_pro = optimize_uav_freq(np.arange(no_users), f_max=f_iU_0, psi= PSI, queue_t=L, d_t=D)
+
 
 	obj_value = obj1 + obj2 + obj3
 	E_ue = energy_ue_pro + energy_ue_off 
 	E_uav = energy_uav_pro
 
-	return obj_value, a_t, b_t, c_t, E_ue, E_uav
+	return obj_value, a_t, b_t, c_t, energy_ue_pro, energy_ue_off, energy_uav_pro
 
 def preprocessing(data_in):
-    # create scaler 
-    scaler = MinMaxScaler()
+    scaler = StandardScaler()
     data = np.reshape(data_in, (-1, 1))
     # fit scaler on data 
     scaler.fit(data)

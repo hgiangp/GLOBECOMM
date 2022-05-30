@@ -5,14 +5,14 @@ from utils import *
 ####
 # SYSTEM PARAMETERS  
 ####
-no_users = 5
-duration = 10 
+no_users = 10
+duration = 10
 ts_duration = mini(10) 
 no_slots = int(duration/ts_duration)
 
 R = Kb(1)
-Amean = 8
-Ameans = np.concatenate((Amean*np.ones((no_users, 1))), axis = 0)
+Amean = 6
+Ameans = np.ones(no_users)*Amean
 
 #############
 ## CHANNEL MODEL PARAMETERS 
@@ -46,19 +46,23 @@ Memory = 1024          # capacity of memory structure
 Delta = 32             # Update interval for adaptive K
 no_nn_inputs = 4
 
-############
+###########
 # Delay 
-############
-D_TH = 10*Amean
+###########
+D_TH = 4*Amean
+TASK_MODEL = 0 
+DELAY_MODEL_SUM = 'sum'
+DELAY_MODEL_SER = 'separate'
+delay_model = DELAY_MODEL_SUM
 
 
 ############
 # Computation parameters 
 #############
-KAPPA = 1e-27
-fi_0 = giga(0.2)
-fu_0 = giga(0.15)
-f_iU_0 = giga()
+KAPPA = 1e-28
+fi_0 = giga(0.5)
+fu_0 = giga(1)
+f_iU_0 = fi_0*no_users*0.75
 
 PSI = 0.1
 
@@ -67,4 +71,4 @@ F = 500*R
 pi_0 = dBm(20)
 
 opt_mode_arr = ['lydroo', 'bf', 'random']
-opt_mode = opt_mode_arr[2]
+opt_mode = opt_mode_arr[0]

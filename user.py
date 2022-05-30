@@ -10,7 +10,9 @@ class Queue:
         self.value = np.zeros((no_slots, 1))
     
     def update(self, islot, depature, arrival): 
+        # self.value[islot, :] = np.maximum(self.value[islot-1, :] - depature + arrival, 0) 
         self.value[islot, :] = np.maximum(self.value[islot-1, :] - depature, 0) + arrival
+        pass 
     
     def get_queue(self, islot): 
         return self.value[islot, 0]
@@ -21,25 +23,40 @@ class User:
 
         self.Q_i = Queue(no_slots=no_slots)
 
-        self.a_i = np.zeros((no_slots, 1))
-        self.b_i = np.zeros((no_slots, 1))
+        self._a_i = np.zeros((no_slots, 1))
+        self._b_i = np.zeros((no_slots, 1))
+        self._delay = np.zeros((no_slots, 1))
+        self._weighted_energy = np.zeros((no_slots, 1))
+        self._ts_counter = 0
+
+    def ts_counter(self, value): 
+        self._ts_counter = value
     
-    def update_computation_task(self, islot, value): 
-        self.a_i[islot, :] = value 
+    def a_i(self, value): 
+        self._a_i[self._ts_counter, :] = value
 
-    def update_offload_task(self, islot, value): 
-        self.b_i[islot, :] = value  
+    def b_i(self, value): 
+        self._b_i[self._ts_counter, :] = value
+   
+    def weighted_energy(self, value): 
+        self._weighted_energy[self._ts_counter, :] = value
 
-    def update_queue(self, islot):
-        self.Q_i.update(islot=islot, depature=self.a_i[islot-1, :] + \
-            self.b_i[islot-1, :], arrival=self.A_i[islot - 1, :])
+    def delay(self, value): 
+        self._delay[self._ts_counter, :] = value 
 
-    def get_queue(self, islot): 
-        return self.Q_i.get_queue(islot)
+    def update_queue(self):
+        islot = self._ts_counter
+        arrival=self.A_i[islot - 1, :]
+        departure = self._a_i[islot-1, :] +  self._b_i[islot-1, :]
+        self.Q_i.update(islot=islot, depature=departure, arrival= arrival)
+
+    def get_queue(self): 
+        return self.Q_i.get_queue(self._ts_counter)
 
     def gen_arrival_task(self, Amean):
-        dataA = np.round(np.random.uniform(0, Amean*2, size=(no_slots, 1)))
-        return dataA 
+        # dataA = np.round(np.random.uniform(0, Amean*2, size=(no_slots, 1)))
+        dataA = np.round(np.random.poisson(Amean, size=(no_slots, 1)))
+        return dataA
 
 
     def gen_gain_slot(self, dist): 
