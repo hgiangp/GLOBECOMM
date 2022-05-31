@@ -6,7 +6,8 @@ class Server:
         self.L_i = [Queue(no_slots) for _ in range(no_users)]
         self._b_i = np.zeros((no_slots, no_users))
         self._c_i = np.zeros((no_slots, no_users))
-        self._energy = np.zeros((no_slots, no_users))
+        # self._energy = np.zeros((no_slots, no_users))
+        self._energy = np.zeros((no_slots, 1))
         self._ts_counter = 0 
 
     def ts_counter(self, value): 

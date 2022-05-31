@@ -39,13 +39,13 @@ def optimize_uav_freq(idx_user, f_max, psi, queue_t, d_t):
 		opt_scale = 1/no_users 
 
 	obj_value, opt_tasks, opt_energy = optimize_computation_task(idx_user, f_max*opt_scale, psi, queue_t, d_t)
-		# opt_energy = KAPPA * np.sum((opt_tasks*F/ts_duration))**3 * ts_duration
-		# obj_value = LYA_V*psi*opt_energy - np.sum((queue_t + d_t)*opt_tasks)
+	opt_energy = KAPPA * np.sum((opt_tasks*F/ts_duration))**3 * ts_duration
+	obj_value = LYA_V*psi*opt_energy - np.sum((queue_t + d_t)*opt_tasks)
 
 	return obj_value, opt_tasks, opt_energy
 
 
-def opt_commun_tasks_eqbw(idx_user, Q_t, L_t, gain_t): 
+def opt_commun_tasks_eqbw(idx_user, Q_t, L_t, gain_t, D_t): 
 	opt_tasks = np.zeros((no_users)) 
 	opt_energy = np.zeros((no_users))
 	no_opt_users = len(idx_user)
@@ -54,11 +54,12 @@ def opt_commun_tasks_eqbw(idx_user, Q_t, L_t, gain_t):
 	# queue_t: numpy array 
 	# idx_user: numpy array np.where(off == 1)[0]
 
-	idx_queue = Q_t[idx_user] > L_t[idx_user]
+	idx_queue = Q_t[idx_user] + D_t[idx_user] > L_t[idx_user]
 	idx_opt = idx_user[idx_queue]
 
 	q_opt_users = Q_t[idx_opt]
 	l_opt_users = L_t[idx_opt]
+	d_opt_users = D_t[idx_opt]
 	gain_opt_users = gain_t[idx_opt]
 	
 	if no_opt_users != 0: 
@@ -66,11 +67,11 @@ def opt_commun_tasks_eqbw(idx_user, Q_t, L_t, gain_t):
 		bounded_b = np.minimum(q_opt_users, np.floor(eqbw*ts_duration/R*np.log2(1 + pi_0*gain_opt_users/N0/eqbw)))
 		opt_tasks[idx_opt] = np.maximum(0, \
 			np.minimum(bounded_b, \
-			np.floor(eqbw*ts_duration/R*np.log2((q_opt_users - l_opt_users)*gain_opt_users/(LYA_V*N0*R*np.log(2))))))	
+			np.floor(eqbw*ts_duration/R*np.log2((q_opt_users + d_opt_users - l_opt_users)*gain_opt_users/(LYA_V*N0*R*np.log(2))))))	
 		
 		opt_energy[idx_opt] = (N0*eqbw*ts_duration/gain_opt_users)*(2**(opt_tasks[idx_opt] *R/eqbw/ts_duration) - 1)
 
-		obj_value = np.sum(- opt_tasks*(Q_t - L_t) + LYA_V*opt_energy)
+		obj_value = np.sum(- opt_tasks*(Q_t + D_t - L_t) + LYA_V*opt_energy)
 
 	return obj_value, opt_tasks, opt_energy
 
@@ -103,7 +104,7 @@ def resource_allocation(off_decsion, Q, L, gain, D):
 	local_ue = np.where(off_decsion == 0)[0]
 	off_ue = np.where(off_decsion == 1)[0]
 	obj1, a_t, energy_ue_pro = optimize_computation_task(local_ue, f_max=fi_0, psi=1, queue_t=Q, d_t=D)
-	obj2, b_t, energy_ue_off = opt_commun_tasks_eqbw(off_ue, Q_t=Q, L_t=L, gain_t=gain)
+	obj2, b_t, energy_ue_off = opt_commun_tasks_eqbw(off_ue, Q_t=Q, L_t=L, gain_t=gain, D_t=D)
 	# obj3, c_t, energy_uav_pro = optimize_computation_task(np.arange(no_users), f_max=f_iU_0, psi= PSI, queue_t=L, d_t=D)
 	# obj3, c_t, energy_uav_pro = optimize_computation_uav(f_max=f_iU_0, psi= PSI, l_t=L, d_t=D)
 	obj3, c_t, energy_uav_pro = optimize_uav_freq(np.arange(no_users), f_max=f_iU_0, psi= PSI, queue_t=L, d_t=D)

@@ -23,7 +23,6 @@ def plot_kpi_users(data_list, kpi_list, path, title):
     plt.legend()
     plt.grid()
     plt.savefig(path + title)
-    # plt.show()
     plt.close()
 
 def plot_rate( rate_his, rolling_intv = 50, ylabel='Normalized Computation Rate', name='Average queue length'):
@@ -70,13 +69,13 @@ def plot_delay():
 
     csv_name = "result.csv"
     # dth_arr = [ 1.0,1.5, 2.0,2.5, 3.0, 3.5, 4.0]
-    dth_arr = [1.5, 2.0, 5.0, 8.0, 10.0, 12.0, 15.0, 16.0, 18.0, 20.0]
-    xscale = 'linear'
-    xlabelstr = 'Delay threshold'
+    # dth_arr = [2.5, 3.0, 5.0, 6.0, 7.0]
+    # xscale = 'linear'
+    # xlabelstr = 'Delay threshold'
 
-    # dth_arr = [1e3, 1e4, 5*1e4, 1e5, 3*1e5, 5*1e5, 1e6, 1e7]
-    # xscale = 'log'
-    # xlabelstr = 'Lyapunov control parameter, V' 
+    dth_arr = [1e3, 1e4, 1e6, 1e7]
+    xscale = 'log'
+    xlabelstr = 'Lyapunov control parameter, V' 
     
     delay = np.zeros(len(dth_arr))
     user_energy = np.zeros(len(dth_arr))
@@ -89,11 +88,10 @@ def plot_delay():
 
 
     for idx, d_th in enumerate(dth_arr):
-        # LYA_V = d_th
-        D_TH = d_th
-        LYA_V = 1e7
-        path = "{}/img/V = 1e7/{}, V ={:.2e}, psi = {:.3e}, dth={:},lambda={:}/".format(
-        os.getcwd(), opt_mode, LYA_V, PSI, D_TH, Amean)
+        LYA_V = d_th
+        # D_TH = d_th
+        path = "{}/img/{}, V ={:.2e}, psi = {:.3e}, dth={:},lambda={:}/".format(
+        os.getcwd(), opt_mode, LYA_V, PSI, D_TH/Amean, Amean)
         
         file = path + csv_name
         data = pd.read_csv(file)
@@ -110,7 +108,7 @@ def plot_delay():
     
         # weighted_energy[idx] = np.mean(data.aweightedE)*1000/ts_duration
     plt.plot(dth_arr, user_energy, '-ob', label='User power')
-    plt.plot(dth_arr, uav_energy, '-or', label='UAV power')        
+    plt.plot(dth_arr, PSI * uav_energy, '-or', label='Weighted UAV power')        
     plt.plot(dth_arr, weighted_energy2, '-ok', label='Weighted power')
     plt.xscale(xscale)
     plt.grid()
@@ -234,8 +232,8 @@ def plot_pickle(path):
 def plot_offloading_computation(b, c, path): 
     fig = plt.figure()
     b_rows = len(b) 
-    plt.plot(np.arange(b_rows), b, label='offloading packets')
-    plt.plot(np.arange(b_rows), c, label='computation packets')
+    plt.plot(np.arange(b_rows), b, label='offloaded packets')
+    plt.plot(np.arange(b_rows), c, label='computed packets')
     plt.legend()
     plt.grid()
     plt.savefig(path + "cb_computation")

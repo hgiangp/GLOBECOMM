@@ -13,6 +13,7 @@ no_slots = int(duration/ts_duration)
 R = Kb(1)
 Amean = 6
 Ameans = np.ones(no_users)*Amean
+# Ameans = np.concatenate((6*np.ones(8), 9*np.ones(no_users - 8)), axis=0)
 
 #############
 ## CHANNEL MODEL PARAMETERS 
@@ -29,13 +30,13 @@ sigma_gain = 2          # sqrt(var_gain)
 gamma = 2.7601          # path loss exponent 
 
 N0 = dBm(-174)
-BW_W = 0.15*no_users*mega(1)
+BW_W = 0.1*no_users*mega(1)
 
 
 ################
 ## Lyapunov params 
 ################
-LYA_V = 1e5 # Lyapunov
+LYA_V = 1e7 # Lyapunov
 
 
 ################
@@ -49,7 +50,12 @@ no_nn_inputs = 4
 ###########
 # Delay 
 ###########
-D_TH = 4*Amean
+D_TH = 10.0 * Amean
+# D_TH_arr = 3.0 * Ameans
+# D_TH_arr = np.concatenate((5*np.ones(8), 3*np.ones(no_users - 8)), axis=0)*Amean
+D_TH_arr = 10.0 * Ameans
+
+
 TASK_MODEL = 0 
 DELAY_MODEL_SUM = 'sum'
 DELAY_MODEL_SER = 'separate'
@@ -59,12 +65,12 @@ delay_model = DELAY_MODEL_SUM
 ############
 # Computation parameters 
 #############
-KAPPA = 1e-28
+KAPPA = 1e-27
 fi_0 = giga(0.5)
 fu_0 = giga(1)
 f_iU_0 = fi_0*no_users*0.75
 
-PSI = 0.1
+PSI = 0.001
 
 F = 500*R
 

@@ -28,8 +28,8 @@ class TFLearning:
         self.E_ue_pro = np.zeros((no_slots, no_users)) # energy consumption of all user  
         self.E_ue_off = np.zeros((no_slots, no_users)) # energy consumption of all user  
         self.E_ue = np.zeros((no_slots, no_users))
-        self.E_uav = np.zeros((no_slots, no_users)) # energy consumption of uav for all user 
-        # self.E_uav = np.zeros((no_slots))
+        # self.E_uav = np.zeros((no_slots, no_users)) # energy consumption of uav for all user 
+        self.E_uav = np.zeros((no_slots, 1))
         self.delay = np.zeros((no_slots, no_users))
         self.bf_action = gen_actions_bf(no_users=no_users)
 
@@ -70,7 +70,7 @@ class TFLearning:
 
         Q_t = np.array([user.get_queue() for user in self.users])
         L_t = self.server.get_queue()    
-        self.virtualD[islot, :] = np.maximum(self.virtualD[islot-1, :] + (Q_t + L_t) - D_TH, 0) 
+        self.virtualD[islot, :] = np.maximum(self.virtualD[islot-1, :] + (Q_t + L_t) - D_TH_arr, 0) 
 
         return Q_t, L_t, self.virtualD[islot, :]
     
@@ -86,7 +86,7 @@ class TFLearning:
 
     def learning(self): 
         k_idx_his = []
-        for islot in range(1, no_slots): 
+        for islot in range(0, no_slots): 
             if islot % (no_slots//10) == 0:
                 print("%0.1f"%(islot/no_slots))
             
@@ -128,8 +128,7 @@ class TFLearning:
             # 3. policy update module
             # encode with the larget reward 
             self.mem.encode(nn_input, m_list[best_idx])
-                        
-            # store max result
+            
             tmp, a_t, b_t, c_t, self.E_ue_pro[islot, :], self.E_ue_off[islot, :], self.E_uav[islot, :] = r_list[best_idx]
             self.E_ue[islot, :] = self.E_ue_pro[islot, :] + self.E_ue_off[islot, :]
             # calculate delay 
@@ -145,7 +144,7 @@ class TFLearning:
                 print(f'remote computation: c_i =', c_t)
                 print(f'remote computation: energy_i =', self.E_ue_pro[islot, :]*1000)
                 print(f'remote computation: energy_i =', self.E_ue_off[islot, :]*1000)
-                print(f'remote computation: energy_u =', self.E_uav[islot, :]*1000)
+                print(f'remote computation: energy_u =', self.E_uav[islot, :]/no_users*1000)
                 print(f'virtual queue_i =', self.virtualD[islot,:])                
                 print(f'fvalue = {v_list[k_idx_his[-1]]}')
         
@@ -167,7 +166,7 @@ class TFLearning:
         E_ue_pro_mean = np.mean(self.E_ue_pro, axis=1)*1000/ts_duration
         E_ue_off_mean = np.mean(self.E_ue_off, axis=1)*1000/ts_duration
         E_ue_mean = E_ue_pro_mean + E_ue_off_mean
-        E_uav_mean = np.mean(self.E_uav, axis=1)*1000/ts_duration
+        E_uav_mean = np.mean(self.E_uav, axis=1)/no_users*1000/ts_duration
         W_E_mean = E_ue_mean + PSI * E_uav_mean
         ava_delay = np.mean(self.delay, axis=1)
 
@@ -207,7 +206,7 @@ if __name__ == "__main__":
     path = create_img_folder()
     
     optimizer.plot_figure(running_time=total_time, pth_folder=path)
-    # plot_pickle(path)
+    plot_pickle(path)
 
 
     print('finish')
