@@ -267,7 +267,7 @@ def plot_optimizer_offloading_decision(optimizer, path, rolling_intv = 10):
 
 
 if __name__ == '__main__':
-    path = create_img_folder(opt_mode=opt_mode, LYA_V=LYA_V, PSI=PSI, D_TH=D_TH, Amean=Amean)
+    path = create_img_folder(opt_mode=opt_mode, LYA_V=LYA_V, PSI=PSI, D_TH=D_TH, Amean=Amean, no_users = no_users)
     
     users = load_data_pickle(file_name=path + USERS_FILE)
     server = load_data_pickle(file_name=path + SERVER_FILE)
