@@ -5,14 +5,13 @@ import matplotlib.pyplot as plt
 import pandas as pd 
 from pandas import DataFrame
 
-def create_img_folder(opt_mode=opt_mode, LYA_V=LYA_V, PSI=PSI, D_TH=D_TH, Amean=Amean, delta_t=delta_t): 
+def create_img_folder(opt_mode=opt_mode, LYA_V=LYA_V, PSI=PSI, D_TH=D_TH, Amean=Amean, delta_t=delta_t, no_users=no_users): 
     sub_path = 'img'
     path = "{}/{}/{}, V ={:.2e}, psi = {:.3e}, dth={:},lambda={:}, no_user={}, delta_t={}/".format(
         os.getcwd(), sub_path, opt_mode, LYA_V, PSI, D_TH/Amean, Amean, no_users, delta_t)
     print(path)
     os.makedirs(path, exist_ok=True)
     return path
-
 
 
 import pickle
