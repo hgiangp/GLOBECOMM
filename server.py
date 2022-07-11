@@ -6,8 +6,8 @@ class Server:
         self.L_i = [Queue(no_slots) for _ in range(no_users)]
         self._b_i = np.zeros((no_slots, no_users))
         self._c_i = np.zeros((no_slots, no_users))
-        # self._energy = np.zeros((no_slots, no_users))
         self._energy = np.zeros((no_slots, 1))
+        self._virtual_queue = np.zeros((no_slots, no_users))
         self._ts_counter = 0 
 
     def ts_counter(self, value): 
@@ -16,6 +16,9 @@ class Server:
     def b_i(self, b_i): 
         self._b_i[self._ts_counter, :] = b_i.reshape(1, -1)
     
+    def virtual_queue(self, value): 
+        self._virtual_queue[self._ts_counter, :] = value
+
     def c_i(self, c_i): 
         self._c_i[self._ts_counter, :] = c_i
     

@@ -17,7 +17,7 @@ weighted_power_arr = np.zeros((no_slots, len(opt_mode_arr)))
 
 for idx, mode in enumerate(opt_mode_arr): 
     print(D_TH)
-    path_dir = create_img_folder(opt_mode=mode, LYA_V=LYA_V, PSI=PSI, D_TH=D_TH, Amean=Amean, delta_t=delta_t)
+    path_dir = create_img_folder(opt_mode=mode, LYA_V=LYA_V, PSI=PSI, D_TH=D_TH, Amean=Amean, delta_t=delta_t, no_users=no_users)
     
     print(path_dir) 
 
@@ -55,13 +55,13 @@ for idx, mode in enumerate(opt_mode_arr):
 fig = plt.figure()
 color_list = ['tab:blue', 'tab:green', 'tab:orange']
 label_list = ['Max-Queue', 'Learning', 'Exhausted']
-rolling_intv = 250
+rolling_intv = 20
 for idata, opt_mode in enumerate(opt_mode_arr): 
     data = weighted_power_arr[:, idata]
     plot_moving_average(data, color=color_list[idata], label=label_list[idata], rolling_intv=rolling_intv)
 plt.legend(fontsize=12, loc='lower right')
-plt.ylim(200, 800)
-plt.xlim(0, 10000)
+plt.ylim(200, 1000)
+plt.xlim(0, 3000)
 plt.grid()
 plt.ylabel('Average weighted power (mW)', fontsize=12)
 plt.xlabel('Time Frame', fontsize=12)

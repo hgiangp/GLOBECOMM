@@ -1,7 +1,5 @@
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
 
-from cmath import sqrt
-from numpy import arange, c_
 from system_params import * 
 from scipy.optimize import minimize, Bounds, LinearConstraint
 
@@ -17,13 +15,13 @@ def optimize_computation_task(idx_user, f_max, psi, queue_t, d_t):
 
 	if no_opt_users != 0: 
 		bounded_freq = np.minimum(f_max, queue_opt_users*F/ts_duration)
-		freq = np.sqrt((queue_opt_users + dt_opt_users)/(3*LYA_V*KAPPA*PSI*F))
+		freq = np.sqrt((scale_queue * queue_opt_users + dt_opt_users)/(3*LYA_V*KAPPA*psi*F))
 		freq_opt = np.minimum(freq, bounded_freq)
 
 		opt_tasks[idx_user] = np.floor(freq_opt*ts_duration/F)
 		opt_energy = KAPPA * ((opt_tasks*F/ts_duration)**3) * ts_duration
 		
-		obj_value = np.sum(LYA_V*psi*opt_energy - (queue_t + d_t)*opt_tasks)
+		obj_value = np.sum(LYA_V*psi*opt_energy - (scale_queue * queue_t + d_t)*opt_tasks)
 	
 	return obj_value, opt_tasks, opt_energy
 
@@ -32,15 +30,9 @@ def optimize_uav_freq(idx_user, f_max, psi, queue_t, d_t):
 	# f_0ue = f_max/no_opt_user
 	# return optimize_computation_task(idx_user, f_0ue, psi, queue_t, d_t)
 
-	opt_value = np.sqrt(queue_t + d_t)
-	if np.sum(opt_value) != 0: 
-		opt_scale = opt_value/np.sum(opt_value)
-	else: 
-		opt_scale = 1/no_users 
-
-	obj_value, opt_tasks, opt_energy = optimize_computation_task(idx_user, f_max*opt_scale, psi, queue_t, d_t)
-	opt_energy = KAPPA * np.sum((opt_tasks*F/ts_duration))**3 * ts_duration
-	obj_value = LYA_V*psi*opt_energy - np.sum((queue_t + d_t)*opt_tasks)
+	f_i_max = f_max/no_users
+	obj_value, opt_tasks, opt_energy = optimize_computation_task(idx_user, f_i_max, psi, queue_t, d_t)
+	opt_energy = np.sum(opt_energy)
 
 	return obj_value, opt_tasks, opt_energy
 
@@ -54,7 +46,7 @@ def opt_commun_tasks_eqbw(idx_user, Q_t, L_t, gain_t, D_t):
 	# queue_t: numpy array 
 	# idx_user: numpy array np.where(off == 1)[0]
 
-	idx_queue = Q_t[idx_user] + D_t[idx_user] > L_t[idx_user]
+	idx_queue = scale_queue*Q_t[idx_user] + D_t[idx_user] > scale_queue*L_t[idx_user]
 	idx_opt = idx_user[idx_queue]
 
 	q_opt_users = Q_t[idx_opt]
@@ -67,11 +59,11 @@ def opt_commun_tasks_eqbw(idx_user, Q_t, L_t, gain_t, D_t):
 		bounded_b = np.minimum(q_opt_users, np.floor(eqbw*ts_duration/R*np.log2(1 + pi_0*gain_opt_users/N0/eqbw)))
 		opt_tasks[idx_opt] = np.maximum(0, \
 			np.minimum(bounded_b, \
-			np.floor(eqbw*ts_duration/R*np.log2((q_opt_users + d_opt_users - l_opt_users)*gain_opt_users/(LYA_V*N0*R*np.log(2))))))	
+			np.floor(eqbw*ts_duration/R*np.log2((scale_queue*q_opt_users + d_opt_users - scale_queue*l_opt_users)*gain_opt_users/(LYA_V*N0*R*np.log(2))))))	
 		
 		opt_energy[idx_opt] = (N0*eqbw*ts_duration/gain_opt_users)*(2**(opt_tasks[idx_opt] *R/eqbw/ts_duration) - 1)
 
-		obj_value = np.sum(- opt_tasks*(Q_t + D_t - L_t) + LYA_V*opt_energy)
+		obj_value = np.sum(- opt_tasks*(scale_queue*Q_t + D_t - scale_queue*L_t) + LYA_V*opt_energy)
 
 	return obj_value, opt_tasks, opt_energy
 
@@ -105,27 +97,41 @@ def resource_allocation(off_decsion, Q, L, gain, D):
 	off_ue = np.where(off_decsion == 1)[0]
 	obj1, a_t, energy_ue_pro = optimize_computation_task(local_ue, f_max=fi_0, psi=1, queue_t=Q, d_t=D)
 	obj2, b_t, energy_ue_off = opt_commun_tasks_eqbw(off_ue, Q_t=Q, L_t=L, gain_t=gain, D_t=D)
-	# obj3, c_t, energy_uav_pro = optimize_computation_task(np.arange(no_users), f_max=f_iU_0, psi= PSI, queue_t=L, d_t=D)
-	# obj3, c_t, energy_uav_pro = optimize_computation_uav(f_max=f_iU_0, psi= PSI, l_t=L, d_t=D)
 	obj3, c_t, energy_uav_pro = optimize_uav_freq(np.arange(no_users), f_max=f_iU_0, psi= PSI, queue_t=L, d_t=D)
+	# obj3, c_t, energy_uav_pro = optimize_uav_freq(off_ue, f_max=f_iU_0, psi= PSI, queue_t=L, d_t=D)
+	
+	obj4 = np.sum(off_decsion*(delta_t**2))
 
-
-	obj_value = obj1 + obj2 + obj3
+	obj_value = obj1 + obj2 + obj3 + obj4
 	E_ue = energy_ue_pro + energy_ue_off 
 	E_uav = energy_uav_pro
 
 	return obj_value, a_t, b_t, c_t, energy_ue_pro, energy_ue_off, energy_uav_pro
 
 def preprocessing(data_in):
-    scaler = StandardScaler()
-    data = np.reshape(data_in, (-1, 1))
-    # fit scaler on data 
-    scaler.fit(data)
-    normalized = scaler.transform(data)
-    normalized = normalized.reshape(1, -1)
-    return normalized
+	# scaler = MinMaxScaler()
+	scaler = StandardScaler()
+	data = np.reshape(data_in, (-1, 1))
+	# fit scaler on data
+	scaler.fit(data)
+	normalized = scaler.transform(data)
+	normalized = normalized.reshape(1, -1)
+	return normalized
 
-def gen_actions_bf(no_users = 5):
+def gen_actions_bf(no_users = 10): 
   import itertools
-  actions = np.array(list(itertools.product([0, 1], repeat=no_users))) # (32, 5)
+  n1 = 3 
+  brute_force = np.array(list(itertools.product([0, 1], repeat=no_users))) # (1024, 10)
+  return brute_force
+  filter = np.sum(brute_force, axis=1) <= n1
+  actions = actions[filter] # (176, 10) 
+#   print(actions.shape) 
   return actions
+
+def gen_actions_greedy_queue(Q_t):
+	actions = np.zeros((1, no_users), dtype=int)
+	# num_off_users = 2 # bw_threshold = 0.3
+	num_off_users = 3 # bw_threshold = 0.5
+	x = np.argsort(Q_t)[::-1][:num_off_users]
+	actions[:, x] = 1
+	return actions 
