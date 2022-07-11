@@ -57,17 +57,28 @@ class MemoryDNN:
     def _build_net(self):
         scaled_kn_size = 2
         kn_size = 4
+        # self.model = keras.Sequential([
+        #             layers.Conv1D(32, kn_size, activation='relu',input_shape=[int(self.net[0]/no_nn_inputs),kn_size]), # first Conv1D with 32 channels and kearnal size 3
+        #             layers.Conv1D(64, 3, activation='relu'), # second Conv1D with 32 channels and kearnal size 3
+        #             layers.Conv1D(64, 3, activation='relu'), # second Conv1D with 32 channels and kearnal size 3
+        #             layers.Flatten(),
+        #             layers.Dense(64, activation='relu'),
+        #             # layers.Dense(self.net[-1], activation='sigmoid'),
+        #             # layers.Dense(self.net[1], activation='relu'),  # the first hidden layer
+        #             # layers.Dense(self.net[2], activation='relu'),  # the second hidden layer
+        #             layers.Dense(self.net[-1], activation='sigmoid')  # the output layer
+        #         ])
         self.model = keras.Sequential([
-                    layers.Conv1D(32, kn_size, activation='relu',input_shape=[int(self.net[0]/no_nn_inputs),kn_size]), # first Conv1D with 32 channels and kearnal size 3
-                    layers.Conv1D(64, 3, activation='relu'), # second Conv1D with 32 channels and kearnal size 3
-                    layers.Conv1D(64, 3, activation='relu'), # second Conv1D with 32 channels and kearnal size 3
-                    layers.Flatten(),
-                    layers.Dense(64, activation='relu'),
-                    # layers.Dense(self.net[-1], activation='sigmoid'),
-                    # layers.Dense(self.net[1], activation='relu'),  # the first hidden layer
-                    # layers.Dense(self.net[2], activation='relu'),  # the second hidden layer
-                    layers.Dense(self.net[-1], activation='sigmoid')  # the output layer
-                ])
+            layers.Conv1D(64, kn_size, activation='relu',input_shape=[int(self.net[0]/no_nn_inputs),kn_size]), # first Conv1D with 32 channels and kearnal size 3
+            layers.Conv1D(64, 3, activation='relu'), # second Conv1D with 32 channels and kearnal size 3
+            layers.Conv1D(64, 3, activation='relu'), # second Conv1D with 32 channels and kearnal size 3
+            layers.Flatten(),
+            # layers.Dense(64, activation='relu'),
+            # layers.Dense(self.net[-1], activation='sigmoid'),
+            layers.Dense(self.net[1], activation='relu'),  # the first hidden layer
+            # layers.Dense(self.net[2], activation='relu'),  # the second hidden layer
+            layers.Dense(self.net[-1], activation='sigmoid')  # the output layer
+        ])
 # 
         self.model.compile(optimizer=keras.optimizers.Adam(lr=self.lr), loss=tf.losses.binary_crossentropy, metrics=['accuracy'])
 
@@ -136,25 +147,25 @@ class MemoryDNN:
             print("The action selection must be 'OP' or 'KNN'")
         return np.unique(m_list, axis=0)
     
-    # def knm(self, m, k = 1):
-    #     # return k order-preserving binary actions
-    #     m_list = []
-    #     # generate the ﬁrst binary ofﬂoading decision with respect to equation (8)
-    #     m_list.append(1*(m>0.5))
+    def knm(self, m, k = 1):
+        # return k order-preserving binary actions
+        m_list = []
+        # generate the ﬁrst binary ofﬂoading decision with respect to equation (8)
+        m_list.append(1*(m>0.5))
         
-    #     if k > 1:
-    #         # generate the remaining K-1 binary ofﬂoading decisions with respect to equation (9)
-    #         m_abs = abs(m-0.5)
-    #         idx_list = np.argsort(m_abs)[:k-1]
-    #         for i in range(k-1):
-    #             if m[idx_list[i]] >0.5:
-    #                 # set the \hat{x}_{t,(k-1)} to 0
-    #                 m_list.append(1*(m - m[idx_list[i]] > 0))
-    #             else:
-    #                 # set the \hat{x}_{t,(k-1)} to 1
-    #                 m_list.append(1*(m - m[idx_list[i]] >= 0))
+        if k > 1:
+            # generate the remaining K-1 binary ofﬂoading decisions with respect to equation (9)
+            m_abs = abs(m-0.5)
+            idx_list = np.argsort(m_abs)[:k-1]
+            for i in range(idx_list.shape[0]):
+                if m[idx_list[i]] >0.5:
+                    # set the \hat{x}_{t,(k-1)} to 0
+                    m_list.append(1*(m - m[idx_list[i]] > 0))
+                else:
+                    # set the \hat{x}_{t,(k-1)} to 1
+                    m_list.append(1*(m - m[idx_list[i]] >= 0))
 
-    #     return m_list
+        return m_list
 
     
     def opn(self, m, k= 1):
@@ -171,17 +182,17 @@ class MemoryDNN:
         idx = np.argsort(sqd)
         return self.enumerate_actions[idx[:k]]
     
-    def knm(self, m, k = 1):
-        # return k order-preserving binary actions
-        m_list = []
-        # generate the ﬁrst binary ofﬂoading decision with respect to equation (8)
-        m_list.append(1*(m>0.5))
+    # def knm(self, m, k = 1):
+    #     # return k order-preserving binary actions
+    #     m_list = []
+    #     # generate the ﬁrst binary ofﬂoading decision with respect to equation (8)
+    #     m_list.append(1*(m>0.5))
         
-        if k > 1:
-            for i in range(k-1):
-                m_list.append( np.int64(rng.uniform(low=0.0, high=1.0, size=no_users) < m) ) 
+    #     if k > 1:
+    #         for i in range(k-1):
+    #             m_list.append( np.int64(rng.uniform(low=0.0, high=1.0, size=no_users) < m) ) 
 
-        return m_list
+    #     return m_list
         
 
     def plot_cost(self, path_name):

@@ -10,8 +10,8 @@ class Queue:
         self.value = np.zeros((no_slots, 1))
     
     def update(self, islot, depature, arrival): 
-        self.value[islot, :] = np.maximum(self.value[islot-1, :] - depature + arrival, 0) 
-        # self.value[islot, :] = np.maximum(self.value[islot-1, :] - depature, 0) + arrival
+        # self.value[islot, :] = np.maximum(self.value[islot-1, :] - depature + arrival, 0) 
+        self.value[islot, :] = np.maximum(self.value[islot-1, :] - depature, 0) + arrival
         pass 
     
     def get_queue(self, islot): 
@@ -26,7 +26,11 @@ class User:
         self._a_i = np.zeros((no_slots, 1))
         self._b_i = np.zeros((no_slots, 1))
         self._delay = np.zeros((no_slots, 1))
+        self._pro_energy = np.zeros((no_slots, 1))
+        self._off_energy = np.zeros((no_slots, 1))
         self._weighted_energy = np.zeros((no_slots, 1))
+        self._virtual_queue = np.zeros((no_slots, 1))
+        self.drift = np.zeros((no_slots, 1)) # drift of the user
         self._ts_counter = 0
 
     def ts_counter(self, value): 
@@ -37,6 +41,15 @@ class User:
 
     def b_i(self, value): 
         self._b_i[self._ts_counter, :] = value
+
+    def virtual_queue_i(self, value): 
+        self._virtual_queue[self._ts_counter, :] = value
+
+    def pro_energy(self, value): 
+        self._pro_energy[self._ts_counter, :] = value
+
+    def off_energy(self, value): 
+        self._off_energy[self._ts_counter, :] = value   
    
     def weighted_energy(self, value): 
         self._weighted_energy[self._ts_counter, :] = value
@@ -55,8 +68,13 @@ class User:
 
     def gen_arrival_task(self, Amean):
         # dataA = np.round(np.random.uniform(0, Amean*2, size=(no_slots, 1)))
-        dataA = np.round(np.random.poisson(Amean, size=(no_slots, 1)))
+        scale_amean = 1 # Amean arrival rate in 
+        dataA = np.round(np.random.uniform(0, 2 * Amean/scale_amean, size=(no_slots, 1)))*scale_amean
         return dataA
+
+    def update_drift(self, drift): 
+        self.drift[self._ts_counter, :] = drift
+        pass
 
 
     def gen_gain_slot(self, dist): 

@@ -33,6 +33,9 @@ def Mb(x):
 def MHz(x): 
   return x*1e6 
 
+def mW(x): 
+  return x*1e-3
+
 def find_mean_mode(arr1, num_2): 
   '''
   add num2 to the last arr1 of num1 and find mean of the array

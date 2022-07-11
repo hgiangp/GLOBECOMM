@@ -1,136 +1,223 @@
 import pandas as pd 
 import os
-import pickle 
 import matplotlib.pyplot as plt  
-from system_params import * 
+from system_params import *
 
-def create_img_folder(): 
 
-    path = "{}/img/{}, V ={:.2e}, psi = {:.3e}, dth={:},lambda={:}/".format(
-        os.getcwd(), opt_mode, LYA_V, PSI, D_TH/Amean, Amean)
-    os.makedirs(path, exist_ok=True)
-    print(f"Directory {os.getcwd()}")
-    return path
+sub_path = 'img'
+no_users = 10 # number of users
 
-def plot_kpi_users(data_list, kpi_list, path, title): 
-    n_ts = data_list[0].shape[0]
-    fig = plt.figure()
-    for (kpi, data) in zip(kpi_list, data_list): 
-        plt.plot(np.arange(n_ts), data, label=kpi)
-    
-    plt.title(title)
-    plt.xlabel('Time frames')
-    plt.legend()
-    plt.grid()
-    plt.savefig(path + title)
-    plt.close()
+def access_img_folder(opt_mode=opt_mode, LYA_V=LYA_V, PSI=PSI, D_TH=D_TH, Amean=Amean, no_users=no_users, delta_t=delta_t): 
 
-def plot_rate( rate_his, rolling_intv = 50, ylabel='Normalized Computation Rate', name='Average queue length'):
-    import matplotlib.pyplot as plt
-    import pandas as pd
-    import matplotlib as mpl
+    path = "{}/{}/{}, V ={:.2e}, psi = {:.3e}, dth={:},lambda={:}, no_user={}, delta_t={}/".format(
+        os.getcwd(), sub_path, opt_mode, LYA_V, PSI, D_TH/Amean, Amean, no_users, delta_t)
+    return path 
 
-    fig = plt.figure()
-    rate_array = np.asarray(rate_his)
-    df = pd.DataFrame(rate_his)
+def plot_twin(power, delay, dth_arr, xlabel = 'Lyapunov parameter V', xscale = 'log', num_element = 2): 
+    # Create some mock data
+    t = dth_arr # Values of LYA_V
+    delay = delay * ts_duration * 1000 # convert to ms 
+    fig, ax1 = plt.subplots()
 
-    plt.grid()
-    plt.plot(np.arange(len(rate_array))+1, rate_array)
-    plt.plot(np.arange(len(rate_array))+1, np.hstack(df.rolling(rolling_intv, min_periods=1).mean().values), 'b')
-    plt.fill_between(np.arange(len(rate_array))+1, np.hstack(df.rolling(rolling_intv, min_periods=1).min()[0].values), np.hstack(df.rolling(rolling_intv, min_periods=1).max()[0].values), color = 'b', alpha = 0.2)
-    plt.ylabel(ylabel)
-    plt.xlabel('Time Frames')
-    plt.savefig(name)
+    color_learning = 'tab:red'
+    color_exhauted = 'tab:blue'
+
+    ax1.set_xscale(xscale)
+
+    ax1.plot(t, power[0, :], '-s')
+    if num_element == 2: 
+        ax1.plot(t, power[1, :], '-s')
+
+    ax1.set_xlim(dth_arr[0], dth_arr[-1])
+    ax1.set_xticks(t)
+
+    ax1.set_xlabel(xlabel)
+    ax1.set_ylabel('Average power comsumption (mW)')
+
+    # ax1.plot(t, power[0, :], color=color_learning)
+    # ax1.plot(t, power[1, :], color=color_exhauted)
+
+    ax1.grid(linestyle='--')
+
+    ax1.tick_params(axis='y')
+
+    ax2 = ax1.twinx()  # instantiate a second axes that shares the same x-axis
+    ax2.set_ylabel('Average system delay (ms)')  # we already handled the x-label with ax1
+    ax2.plot(t, delay[0, :], '-s')
+    if num_element == 2:
+        ax2.plot(t, delay[1, :], '-s')
+
+    # ax2.grid(linestyle='--')
+    ax2.tick_params(axis='y')
+    ax1.set_xlim(dth_arr[0], dth_arr[-1])
+    # ax2.set_xscale('log')
+
+    fig.tight_layout()  # otherwise the right y-label is slightly clipped
+    plt.savefig('img/power_delay.eps')
     plt.show()
     plt.close()
 
-def plot_kpi_avr(data_list, kpi_list, path): 
-    rolling_intv = 10
-    for (kpi, data) in zip(kpi_list, data_list): 
-        plot_rate(data, rolling_intv, kpi, path+kpi)
-
-def plot_kpi_data(xdata, xlabel, xscale, path):
-    no_elements = len(xdata)
-
-    queue = np.size(no_elements, 2)
-    energy = np.size(no_elements, 3)
-    tasks = np.size(no_elements, 3)
-    delay = np.size(no_elements, 1)
-    for idata, data in xdata:
-        V = data
-        path = "{}/img/{}, V ={:.2e}, psi = {:.3e}, dth={:},lambda={:}/".format(
-        os.getcwd(), opt_mode, LYA_V, PSI, D_TH, Amean)
-        
-        queue[idata, :], energy[idata, :], tasks[idata, :], delay[idata, :] = load_data(path=path)
-    # plot_queue
-
-
 def plot_delay(): 
-
     csv_name = "result.csv"
-    # dth_arr = [ 1.0,1.5, 2.0,2.5, 3.0, 3.5, 4.0]
-    # dth_arr = [2.5, 3.0, 5.0, 6.0, 7.0]
+    dth_arr = [5*1e2, 2*1e3, 1e4, 5*1e4, 2*1e5, 5*1e5, 1e6]
+
     # xscale = 'linear'
     # xlabelstr = 'Delay threshold'
 
-    dth_arr = [1e3, 1e4, 1e6, 1e7]
+    # dth_arr =  [1e3, 5*1e3, 1e4,5*1e4, 1e5, 5*1e5, 1e6]
     xscale = 'log'
     xlabelstr = 'Lyapunov control parameter, V' 
+
+    modes = ['Learning', 'Exhausted']
+    
+    delay = np.zeros((len(modes), len(dth_arr)))
+    user_energy = np.zeros((len(modes), len(dth_arr)))
+    uav_energy = np.zeros((len(modes), len(dth_arr)))
+    weighted_energy2 = np.zeros((len(modes), len(dth_arr)))
+    user_queue, uav_queue = np.zeros((len(modes), len(dth_arr))), np.zeros((len(modes), len(dth_arr)))
+    localA, offloadB, remoteC = np.zeros((len(modes), len(dth_arr))),np.zeros((len(modes), len(dth_arr))), np.zeros((len(modes), len(dth_arr)))
+    for imode, mode in enumerate(modes): 
+        opt_mode = mode
+        for idx, d_th in enumerate(dth_arr):
+            LYA_V = d_th
+            # D_TH = d_th*Amean
+            path = access_img_folder(opt_mode=opt_mode, LYA_V=LYA_V)
+            
+            file = path + csv_name
+            data = pd.read_csv(file)
+            # delay[imode, idx] = np.mean(data.delay)
+            delay[imode, idx] = np.array(data.delay)[:, np.newaxis][-1, 0]
+            user_energy[imode, idx] = np.mean(data.energy_user)
+            # uav_energy[idx] = np.mean(data.energy_uav)
+            # weighted_energy2[idx] = np.mean(data.weightedE)
+            uav_energy[imode, idx] = np.mean(data.energy_uav)/no_users
+            weighted_energy2[imode, idx] = PSI * uav_energy[imode, idx] + user_energy[imode, idx]
+            user_queue[imode, idx] = np.mean(data.local_queue)
+            uav_queue[imode, idx] = np.mean(data.uav_queue)
+            localA[imode, idx] = np.mean(data.local_a)
+            offloadB[imode, idx] = np.mean(data.off_b)
+            remoteC[imode, idx] = np.mean(data.remote_c)
+    
+    plot_twin(weighted_energy2, delay, dth_arr)
+    fig1 = plt.figure(1)
+    
+    # weighted_energy[idx] = np.mean(data.aweightedE)*1000/ts_duration
+    # labels = ['learning', 'exhausted search', 'random']
+    # markers = ['s', 'o', 'v']
+    # line_styles = ['-', '--', '-.']
+    labels = ['Learning', 'Exhausted']
+    markers = ['s', 'o']
+    line_styles = ['-', '--']    
+    weighted_energy_W = weighted_energy2/1000
+    for imode in range(len(modes)): 
+        plt.plot(dth_arr, weighted_energy_W[imode, :], label=labels[imode], marker=markers[imode], linestyle=line_styles[imode])
+
+    plt.xscale(xscale)
+    plt.xlabel(xlabelstr)
+    plt.xticks(dth_arr)
+    plt.grid(linestyle='--')
+    plt.ylabel('Mean power consumption (W)')
+    plt.xlim(dth_arr[0], dth_arr[-1])
+    plt.legend()
+    plt.savefig(f'./{sub_path}/cmp_' + xlabelstr+'_vs_power.png')
+    plt.savefig(f'./{sub_path}/cmp_' + xlabelstr+'_vs_power.eps')
+    plt.close()
+
+    fig2 = plt.figure(2)
+    delay_ms = delay*ts_duration*1000
+    for imode in range(len(modes)):
+        plt.plot(dth_arr, delay_ms[imode, :], label=labels[imode], marker=markers[imode], linestyle=line_styles[imode])
+
+    plt.xscale(xscale)
+    plt.xlabel(xlabelstr)
+    plt.xticks(dth_arr)
+    plt.grid(linestyle='--')
+    plt.xlim(dth_arr[0], dth_arr[-1])
+    plt.ylabel('Average latency (ms)')
+    plt.legend()
+    plt.savefig(f'./{sub_path}/cmp_' + xlabelstr+'_vs_dth.png')
+    plt.savefig(f'./{sub_path}/cmp_' + xlabelstr+'_vs_dth.eps')
+    plt.close()
+
+
+def plot_delay_bk(): 
+    csv_name = "result.csv"
+    # dth_arr = [3, 4, 5, 6, 7, 8]
+    # xscale = 'linear'
+    # xlabelstr = 'Latency threshold'
+
+    dth_arr = [1e2, 1e3, 1e4, 1e5, 1e6, 1e7]
+    xscale = 'log'
+    xlabelstr = 'Lyapunov control parameter, V' 
+
+    # modes = [opt_mode[0], opt_mode[1]]
     
     delay = np.zeros(len(dth_arr))
     user_energy = np.zeros(len(dth_arr))
-    uav_energy = np.zeros(len(dth_arr))
+    uav_energy = np.zeros( len(dth_arr))
     weighted_energy2 = np.zeros(len(dth_arr))
     user_queue, uav_queue = np.zeros(len(dth_arr)), np.zeros(len(dth_arr))
     localA, offloadB, remoteC = np.zeros(len(dth_arr)), np.zeros(len(dth_arr)), np.zeros(len(dth_arr))
-
-    
-
-
     for idx, d_th in enumerate(dth_arr):
+        # D_TH=d_th*Amean
         LYA_V = d_th
-        # D_TH = d_th
-        path = "{}/img/{}, V ={:.2e}, psi = {:.3e}, dth={:},lambda={:}/".format(
-        os.getcwd(), opt_mode, LYA_V, PSI, D_TH/Amean, Amean)
+        path = access_img_folder(opt_mode = 'learning', LYA_V=LYA_V, D_TH=D_TH)
         
         file = path + csv_name
         data = pd.read_csv(file)
-        delay[idx] = np.mean(data.delay)
+        # delay[idx] = np.mean(data.delay)
+        delay[idx] = np.array(data.delay)[:, np.newaxis][-1, 0]
         user_energy[idx] = np.mean(data.energy_user)
-        uav_energy[idx] = np.mean(data.energy_uav)
-        weighted_energy2[idx] = np.mean(data.weightedE)
+        uav_energy[idx] = np.mean(data.energy_uav)/no_users
+        weighted_energy2[idx] = PSI * uav_energy[idx] + user_energy[idx]
         user_queue[idx] = np.mean(data.local_queue)
         uav_queue[idx] = np.mean(data.uav_queue)
         localA[idx] = np.mean(data.local_a)
         offloadB[idx] = np.mean(data.off_b)
-        remoteC[idx] = np.mean(data.remote_c)
+        remoteC[idx] = np.mean(data.remote_c) 
+
+    weighted_energy2 = weighted_energy2.reshape(1, -1)
+    delay = delay.reshape(1, -1)
+
+
+    plot_twin(weighted_energy2, delay, dth_arr, xlabel=xlabelstr, xscale=xscale, num_element = 1)
+
+    weighted_energy2 = weighted_energy2.flatten()
+    delay = delay.flatten()
+
     fig1 = plt.figure(1)
-    
-        # weighted_energy[idx] = np.mean(data.aweightedE)*1000/ts_duration
-    plt.plot(dth_arr, user_energy, '-ob', label='User power')
-    plt.plot(dth_arr, PSI * uav_energy, '-or', label='Weighted UAV power')        
-    plt.plot(dth_arr, weighted_energy2, '-ok', label='Weighted power')
+    # plt.plot(dth_arr, user_energy, '-ob', label='User power')
+    # plt.plot(dth_arr, uav_energy, '-or', label='UAV power')        
+    plt.plot(dth_arr, weighted_energy2, '-ob', label='Weighted power')
     plt.xscale(xscale)
-    plt.grid()
+    # plt.xlim(1e3, 5*1e5)
     plt.xlabel(xlabelstr)
-    plt.xticks(dth_arr)
-    plt.ylabel('Power consumption (mW)')
+    plt.xticks(ticks= dth_arr)
+    plt.grid(linestyle='--')
+    plt.ylabel('Average system power consumption (mW)')
     plt.legend()
     plt.savefig('./img/' + xlabelstr+'_vs_power.png')
+    plt.savefig('./img/' + xlabelstr+'_vs_power.eps')
     plt.close()
 
 
-    # plt.plot(dth_arr, dth_arr - delay, '-o', label = "ts_duration delay (TS)")
     fig2 = plt.figure(2)
-    plt.plot(dth_arr, delay, '-ob', label = "Delay")
-    plt.xticks(dth_arr)
-    plt.xlabel(xlabelstr)
-    plt.xscale(xscale)
-    plt.grid()
+    # dth_ms = np.array(dth_arr)*10 # convert to ms
+    dth_ms = dth_arr
+    delay_ms = delay*ts_duration*1000
+    gaps = dth_ms - delay_ms
+    print(gaps)
+    plt.plot(dth_ms, delay_ms, '-ob', label="Delay")
 
-    plt.ylabel('Delay (TS)')
+    plt.xscale(xscale)
+    plt.xlabel(xlabelstr)
+    # plt.xticks(dth_arr)
+    plt.grid(linestyle='--')
+    # plt.xlim(dth_arr[0], dth_arr[-1])
+    plt.ylabel('Average latency (ms)')
     plt.legend()
-    plt.savefig('./img/' + xlabelstr + '_vs_dth.png')
+    plt.savefig('./img/'+ xlabelstr +'_vs_dth.png')
+    plt.savefig('./img/'+ xlabelstr +'_vs_dth.eps')
     plt.close()
 
     fig3 = plt.figure(3)
@@ -140,12 +227,13 @@ def plot_delay():
     plt.plot(dth_arr, offloadB/scale, '-or', label = "Offloading packets")
     plt.plot(dth_arr, remoteC/scale, '-.ok', label = "UAV computation packets")
     plt.xscale(xscale)
-    plt.grid()
-    plt.xticks(dth_arr)
     plt.xlabel(xlabel=xlabelstr)
+    plt.grid(linestyle='--')
+    plt.xticks(dth_arr)
     plt.ylabel('Computation and offload volume (packets)')
     plt.legend()
     plt.savefig('./img/' + xlabelstr + '_vs_abc.png')
+    plt.savefig('./img/' + xlabelstr + '_vs_abc.eps')
     plt.close()
     # plt.show()
 
@@ -154,90 +242,64 @@ def plot_delay():
     plt.plot(dth_arr, user_queue, '-ob', label = "User queue")
     plt.plot(dth_arr, uav_queue, '-or', label = "UAV queue")
     plt.xlabel(xlabel=xlabelstr)
-    plt.xticks(dth_arr)
     plt.xscale(xscale)
-    plt.grid()
+    plt.grid(linestyle='--')
+    plt.xticks(dth_arr)
     plt.ylabel('Queue length (packets)')
     plt.legend()
     plt.savefig('./img/' + xlabelstr+'_vs_queue.png')
+    plt.savefig('./img/' + xlabelstr + '_vs_queue.eps')
     plt.close()
-    # plt.show()
 
-def load_data(path, file_name='result.csv'):
-    data = pd.read_csv(path+file_name)
-        # df = pd.DataFrame( {'local_queue':Q_mean,'uav_queue':L_mean,
-        #     'energy_user_pro':E_ue_pro_mean,'energy_user_off':E_ue_off_mean, 
-        #     'energy_user':E_ue_mean,'energy_uav':E_uav_mean, 
-        #     'delay':ava_delay, 'weightedE': W_E_mean, 
-        #     'off_b': b_mean, 'local_a': a_mean, 'remote_c': c_mean, 
-        #     'time': running_time
-        #     })
-    Q_mean = np.mean(data.local_queue)
-    L_mean = np.mean(data.uav_queue)
-    E_ue = np.mean(data.energy_user)
-    E_uav = np.mean(data.energy_uav)
-    E_ue_pro = np.mean(data.energy_user_pro)
-    E_ue_off = np.mean(data.E_ue_off_mean)
-    delay = np.mean(data.ava_delay)
-    WeightedE = np.mean(data.W_E_mean)
-    local_a = np.mean(data.local_a)
-    off_b = np.mean(data.off_b)
-    remote_c = np.mean(data.remote_c)
+def plot_barchart(): 
+    labels = ['15']
+    # labels = ['8', '10', '12']
+    # users_num_arr = [8, 10, 12]
+    power_means = []
+    # search_algs = ['random', 'learning', 'exhausted']
+    search_algs = ['greedy', 'learning', 'exhausted']
+    hatchs = ['x', '\\', '/']
 
-    queue_info = (Q_mean, L_mean)
-    E_info = (E_ue, E_uav, WeightedE)
-    tasks = (local_a, off_b, remote_c)
-
-    return queue_info, E_info, tasks, delay 
+    ###### GET PARAMS
+    csv_name = "result.csv"
+    for ialg, alg in enumerate(search_algs):
+        no_users = 15
+        opt_mode = alg 
+        path = access_img_folder(opt_mode=opt_mode, LYA_V=LYA_V, no_users=no_users)
+        data = pd.read_csv(path + csv_name)
+        power_means.append((np.mean(data.energy_user) + PSI * np.mean(np.mean(data.energy_uav)/no_users)))
+    ###### PLOTS 
 
 
-plot_delay()
+    x = np.arange(len(labels))  # the label locations
+    width = 0.00005  # the width of the bars
 
-############
-# save pickle object 
-###########
+    # plt.figure(figsize=(1,1),dpi=300)
+    fig, ax = plt.subplots(figsize=(4, 4))
+    for ialg, alg in enumerate(search_algs): 
+        rects1 = ax.bar(x + (ialg - 1)*width, power_means[ialg], width, label=alg, hatch=hatchs[ialg], fill=False)
+        ax.bar_label(rects1, padding=3)
 
-def save_data(file_name, object):
-    with open(file_name, 'wb') as handle: 
-        pickle.dump(object, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
-def load_data_pickle(file_name): 
-    with open(file_name, 'rb') as handle:
-        b = pickle.load(handle)
-    return b 
+    # rects1 = ax.bar(x - width, power_means[0], width, label=search_algs[0], hatch=hatchs[0], fill=False)
+    # rects2 = ax.bar(x, power_means[1], width, label=search_algs[1], hatch=hatchs[1], fill=False)
+    # rects3 = ax.bar(x + width, power_means[2], width, label=search_algs[2], hatch=hatchs[2], fill=False)
 
-def plot_users_kpi(users, color, path):
-    fig = plt.figure
-    legend = []
-    for idx, user in enumerate(users): 
-        plt.plot(np.arange(no_slots), user._delay)
-        legend.append('user[{}]'.format(idx))
-    plt.legend(legend)
-    plt.xlabel('t')
-    plt.ylabel('Avarage delay (TS)')
-    plt.grid()
-    plt.savefig(path+'users_delay')
+    # ax.bar_label(rects1, padding=3)
+    # ax.bar_label(rects2, padding=3)
+    # ax.bar_label(rects3, padding=3)
+
+
+    # Add some text for labels, title and custom x-axis tick labels, etc.
+    ax.set_ylabel('Mean Power (mW)')
+    ax.set_xlabel('Number of UEs')
+    ax.set_xticks(x, labels)
+    ax.legend()
+
+    fig.tight_layout()
+    plt.savefig(f'./img/power_vs_no_users{no_users}.png', dpi=300)
     plt.show()
 
-def plot_pickle(path): 
-    users = load_data_pickle(path+"users.pickle")
-    server = load_data_pickle(path+"server.pickle")
-
-    color = ['b', 'r', 'k', 'g', 'c']
-
-    plot_users_kpi(users, color, path)
-    print('finish!')
-
-
-def plot_offloading_computation(b, c, path): 
-    fig = plt.figure()
-    b_rows = len(b) 
-    plt.plot(np.arange(b_rows), b, label='offloaded packets')
-    plt.plot(np.arange(b_rows), c, label='computed packets')
-    plt.legend()
-    plt.grid()
-    plt.savefig(path + "cb_computation")
-    plt.show()
-
-
-
+# plot_barchart()
+# plot_delay_bk()
+# plot_delay()
