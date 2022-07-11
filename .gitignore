@@ -1,2 +1,9 @@
 __pycache__/
 .DS_Store
+.ipynb_checkpoints/
+img/
+img_dth/
+img_vs_no_users/
+img_vs_ts/
+img_vs_v_bw=0.4/
+img_vs_v_bw=0.8/
