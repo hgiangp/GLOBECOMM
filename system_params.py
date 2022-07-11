@@ -6,7 +6,7 @@ from utils import *
 only_ue = False   
 only_uav = False 
 
-no_users = 10
+no_users = 12
 duration = 100
 ts_duration = mini(10) 
 no_slots = int(duration/ts_duration)
