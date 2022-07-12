@@ -67,10 +67,6 @@ ax.set_xlabel("Number of IDs", fontsize = 12)
 ax.set_ylabel('Average Power Consumption (mW)', fontsize = 12)
 ax.set_ylim(100, 950)
 ax.set_yticks([200, 400, 600, 800])
-# plt.grid(True, axis = 'y', color = '0.6', linestyle = '-')
-
-# plt.title("Players Score")
-  
 
 xsticks = [str(no_users) for no_users in users_num]
 
