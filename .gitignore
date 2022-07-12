@@ -4,6 +4,7 @@ __pycache__/
 img/
 img_dth/
 img_vs_no_users/
-img_vs_ts/
+img_vs_ts_v=1e4/
+img_vs_ts_v=1e6/
 img_vs_v_bw=0.4/
 img_vs_v_bw=0.8/

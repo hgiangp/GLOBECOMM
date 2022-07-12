@@ -120,18 +120,19 @@ def preprocessing(data_in):
 
 def gen_actions_bf(no_users = 10): 
   import itertools
-  n1 = 3 
+  n1 = 2
   brute_force = np.array(list(itertools.product([0, 1], repeat=no_users))) # (1024, 10)
   return brute_force
-  filter = np.sum(brute_force, axis=1) <= n1
-  actions = actions[filter] # (176, 10) 
+#   filter = np.sum(brute_force, axis=1) <= n1
+#   actions = brute_force[filter] # (176, 10) 
 #   print(actions.shape) 
-  return actions
+#   return actions
 
 def gen_actions_greedy_queue(Q_t):
 	actions = np.zeros((1, no_users), dtype=int)
-	# num_off_users = 2 # bw_threshold = 0.3
-	num_off_users = 3 # bw_threshold = 0.5
+	# num_off_users = 2 # bw_threshold = 0.8 v = 1e4
+	num_off_users = 2 if abs(np.random.rand()) < 0.3 else 1 # average no_off_users = 1.7
+	# num_off_users = 3 # bw_threshold = 0.5
 	x = np.argsort(Q_t)[::-1][:num_off_users]
 	actions[:, x] = 1
 	return actions 

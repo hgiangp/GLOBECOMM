@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 
 plt.rcParams.update({'font.family':'Helvetica'})
 
-LYA_V = 1e6
+LYA_V = 1e4
 Amean = 9
 D_TH = 5 * Amean
 no_users = 10 
@@ -32,6 +32,7 @@ for idx, mode in enumerate(opt_mode_arr):
     ue_pro_power_arr = np.zeros((no_slots, no_users))
     ue_off_power_arr = np.zeros((no_slots, no_users))
     ue_total_power_arr = np.zeros((no_slots, no_users))
+    total_queues = np.ze
     uav_power_arr = np.zeros((no_slots))
 
     for iuser, user in enumerate(users): 
@@ -55,17 +56,19 @@ for idx, mode in enumerate(opt_mode_arr):
 fig = plt.figure()
 color_list = ['tab:blue', 'tab:green', 'tab:orange']
 label_list = ['Max-Queue', 'Learning', 'Exhausted']
-rolling_intv = 20
+rolling_intv = 50
 for idata, opt_mode in enumerate(opt_mode_arr): 
     data = weighted_power_arr[:, idata]
     plot_moving_average(data, color=color_list[idata], label=label_list[idata], rolling_intv=rolling_intv)
 plt.legend(fontsize=12, loc='lower right')
 plt.ylim(200, 1000)
-plt.xlim(0, 3000)
+plt.xlim(0, 5000)
+plt.yticks([300, 500, 700, 900])
 plt.grid()
-plt.ylabel('Average weighted power (mW)', fontsize=12)
-plt.xlabel('Time Frame', fontsize=12)
-plt.savefig('./results/' + 'power_vs_time.eps', bbox_inches='tight')
-plt.savefig('./results/' + 'power_vs_time.png', bbox_inches='tight')
+plt.ylabel('Average Power Consumption (mW)', fontsize=12)
+plt.xlabel('Time Slot', fontsize=12)
+# plt.title(f'Moving average of {rolling_intv} Time Frame' )
+plt.savefig('./results/power_vs_time.eps', bbox_inches='tight')
+plt.savefig('./results/power_vs_time.png', bbox_inches='tight')
 
 plt.show()

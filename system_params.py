@@ -6,13 +6,13 @@ from utils import *
 only_ue = False   
 only_uav = False 
 
-no_users = 12
+no_users = 10
 duration = 100
 ts_duration = mini(10) 
 no_slots = int(duration/ts_duration)
 
 R = Kb(1)
-Amean = 9
+Amean = 12
 Ameans = np.ones(no_users)*Amean
 
 #############

@@ -44,6 +44,7 @@ class TFLearning:
         self.delay = np.zeros((no_slots, no_users))
         self.bf_action = gen_actions_bf(no_users=no_users)
         self.mode_his = np.zeros((no_slots, no_users))
+        self.Mt_s = np.zeros((no_slots))
 
     def get_gain_ue(self, islot): 
         gain = np.array([user.gain[islot] for user in self.users])
@@ -129,7 +130,9 @@ class TFLearning:
                 else:
                     max_k = k_idx_his[-1] +1
                 self.k = min(max_k +1, no_users)
-            
+            #######upate M_t ################
+            self.Mt_s[islot] = self.k 
+            ################################
             ## update counter
             for user in self.users: 
                 user.ts_counter(islot)
@@ -245,7 +248,9 @@ if __name__ == "__main__":
     optimizer.plot_figure(running_time=total_time, pth_folder=path)
     # save_data(file_name = pth_folder + OPTIMIZER_FILE, object=optimizer)
     plot_optimizer_offloading_decision(optimizer, path)
-
+    # import matplotlib.pyplot as plt
+    # plt.plot(optimizer.Mt_s)
+    # plt.show()
     ### plot number of offloading users
     
     print('finish')

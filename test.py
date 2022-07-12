@@ -256,7 +256,7 @@ def plot_optimizer_offloading_decision(optimizer, path, rolling_intv = 10):
     print("average delay: " + str(optimizer.delay[-1]))
     
     data = average_offloading_users
-    rolling_intv = 10 
+    rolling_intv = 10
     df = pd.DataFrame(data)
     plt.plot(np.arange(len(data))+1, \
                 np.hstack(df.rolling(rolling_intv, min_periods=1).mean().values), \

@@ -169,7 +169,11 @@ class MemoryDNN:
 
     
     def opn(self, m, k= 1):
-        return self.knm(m,k)+self.knm(m+np.random.normal(0,1,len(m)),k)
+        # return 2k order-preserving binary actions
+        sigmoid_for_nop = 1/(1+np.exp(-(m+np.random.normal(0,1,len(m)))))
+        wo_sigmoid = m + np.random.normal(0,1,len(m))
+        return self.knm(m, k) + self.knm(wo_sigmoid, k)
+        # return self.knm(m,k)+self.knm(sigmoid_for_nop,k)
     
     def knn(self, m, k = 1):
         # list all 2^N binary offloading actions
