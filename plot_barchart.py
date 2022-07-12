@@ -19,7 +19,7 @@ ax.grid(True, axis = 'y', color = '0.8', linestyle = '-')
 
 ####### Read data from pickle file #######
 
-users_num = [8, 10, 15]
+users_num = [8, 10, 12, 15]
 
 N = len(users_num)
 ind = np.arange(N) 
@@ -65,7 +65,8 @@ bar3 = ax.bar(space*2 + ind+width*2, exhausted_vals, width,  color = 'none', hat
   
 ax.set_xlabel("Number of IDs", fontsize = 12)
 ax.set_ylabel('Average Power Consumption (mW)', fontsize = 12)
-# ax.set_ylim(400, 1000)
+ax.set_ylim(100, 950)
+ax.set_yticks([200, 400, 600, 800])
 # plt.grid(True, axis = 'y', color = '0.6', linestyle = '-')
 
 # plt.title("Players Score")
