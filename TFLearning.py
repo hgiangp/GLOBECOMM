@@ -26,7 +26,7 @@ pth_folder = create_img_folder()
 
 class TFLearning: 
     def __init__(self):
-        self.users = [User(Amean) for Amean in Ameans]
+        self.users = self.generate_users()
         self.server = Server()
         self.virtualD = np.zeros((no_slots, no_users))
         self.k = no_users       # no of generated modes in each TS 
@@ -45,6 +45,19 @@ class TFLearning:
         self.bf_action = gen_actions_bf(no_users=no_users)
         self.mode_his = np.zeros((no_slots, no_users))
         self.Mt_s = np.zeros((no_slots))
+
+    def generate_users(self): 
+        '''
+        generate users with loaded channel and tasks 
+        '''
+        CHANNEL_FILE = f'./datagen/a{no_users}_{Amean}_channel.npy'
+        TASK_FILE = f'./datagen/a{no_users}_{Amean}_task.npy'
+        channels = np.load(CHANNEL_FILE)
+        tasks = np.load(TASK_FILE)
+        users = [User(channel=channels[:, iuser], task=tasks[:, iuser]) for iuser in range(no_users)]
+        print("Users generated")
+        return users 
+
 
     def get_gain_ue(self, islot): 
         gain = np.array([user.gain[islot] for user in self.users])
@@ -248,9 +261,9 @@ if __name__ == "__main__":
     optimizer.plot_figure(running_time=total_time, pth_folder=path)
     # save_data(file_name = pth_folder + OPTIMIZER_FILE, object=optimizer)
     plot_optimizer_offloading_decision(optimizer, path)
-    # import matplotlib.pyplot as plt
-    # plt.plot(optimizer.Mt_s)
-    # plt.show()
-    ### plot number of offloading users
+    import matplotlib.pyplot as plt
+    plt.plot(optimizer.Mt_s)
+    plt.show()
+    ## plot number of offloading users
     
     print('finish')

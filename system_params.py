@@ -12,7 +12,7 @@ ts_duration = mini(10)
 no_slots = int(duration/ts_duration)
 
 R = Kb(1)
-Amean = 12
+Amean = 9
 Ameans = np.ones(no_users)*Amean
 
 #############
@@ -39,7 +39,7 @@ else:
 ################
 ## Lyapunov params 
 ################
-LYA_V = 1E6 # Lyapunov
+LYA_V = 1E4 # Lyapunov
 no_cores = 10 
 
 ################
@@ -76,7 +76,7 @@ F = 500*R
 pi_0 = dBm(20)
 
 opt_mode_arr = ['learning', 'exhausted', 'random', 'greedy']
-opt_mode = opt_mode_arr[1]
+opt_mode = opt_mode_arr[3]
 
 ########
 # pickle file 

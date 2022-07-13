@@ -32,7 +32,6 @@ for idx, mode in enumerate(opt_mode_arr):
     ue_pro_power_arr = np.zeros((no_slots, no_users))
     ue_off_power_arr = np.zeros((no_slots, no_users))
     ue_total_power_arr = np.zeros((no_slots, no_users))
-    total_queues = np.ze
     uav_power_arr = np.zeros((no_slots))
 
     for iuser, user in enumerate(users): 

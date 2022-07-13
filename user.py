@@ -17,9 +17,9 @@ class Queue:
     def get_queue(self, islot): 
         return self.value[islot, 0]
 class User: 
-    def __init__(self, Amean):
-        self.gain = dB(self.gen_gain())
-        self.A_i = self.gen_arrival_task(Amean)
+    def __init__(self, channel, task):
+        self.gain = dB(channel)
+        self.A_i = task.reshape(no_slots, 1)
 
         self.Q_i = Queue(no_slots=no_slots)
 
